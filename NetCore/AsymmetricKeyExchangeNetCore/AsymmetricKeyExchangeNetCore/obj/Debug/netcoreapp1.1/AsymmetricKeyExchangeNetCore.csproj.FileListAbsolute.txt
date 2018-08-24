@@ -1,0 +1,9 @@
+c:\Users\Instructor\Documents\Visual Studio 2017\Projects\AsymmetricKeyExchangeNetCore\AsymmetricKeyExchangeNetCore\bin\Debug\netcoreapp1.1\AsymmetricKeyExchangeNetCore.deps.json
+c:\Users\Instructor\Documents\Visual Studio 2017\Projects\AsymmetricKeyExchangeNetCore\AsymmetricKeyExchangeNetCore\bin\Debug\netcoreapp1.1\AsymmetricKeyExchangeNetCore.runtimeconfig.json
+c:\Users\Instructor\Documents\Visual Studio 2017\Projects\AsymmetricKeyExchangeNetCore\AsymmetricKeyExchangeNetCore\bin\Debug\netcoreapp1.1\AsymmetricKeyExchangeNetCore.runtimeconfig.dev.json
+c:\Users\Instructor\Documents\Visual Studio 2017\Projects\AsymmetricKeyExchangeNetCore\AsymmetricKeyExchangeNetCore\bin\Debug\netcoreapp1.1\AsymmetricKeyExchangeNetCore.dll
+c:\Users\Instructor\Documents\Visual Studio 2017\Projects\AsymmetricKeyExchangeNetCore\AsymmetricKeyExchangeNetCore\obj\Debug\netcoreapp1.1\AsymmetricKeyExchangeNetCore.csprojResolveAssemblyReference.cache
+c:\Users\Instructor\Documents\Visual Studio 2017\Projects\AsymmetricKeyExchangeNetCore\AsymmetricKeyExchangeNetCore\obj\Debug\netcoreapp1.1\AsymmetricKeyExchangeNetCore.AssemblyInfo.cs
+C:\Users\Instructor\documents\visual studio 2017\Projects\AsymmetricKeyExchangeNetCore\AsymmetricKeyExchangeNetCore\bin\Debug\netcoreapp1.1\AsymmetricKeyExchangeNetCore.pdb
+C:\Users\Instructor\documents\visual studio 2017\Projects\AsymmetricKeyExchangeNetCore\AsymmetricKeyExchangeNetCore\obj\Debug\netcoreapp1.1\AsymmetricKeyExchangeNetCore.dll
+C:\Users\Instructor\documents\visual studio 2017\Projects\AsymmetricKeyExchangeNetCore\AsymmetricKeyExchangeNetCore\obj\Debug\netcoreapp1.1\AsymmetricKeyExchangeNetCore.pdb

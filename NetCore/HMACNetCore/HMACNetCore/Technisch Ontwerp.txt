@@ -1,0 +1,24 @@
+Uit: Computable, 26-01-2012
+
+Technisch ontwerp hoort in de prullenbak
+26-01-2012 12:41 | DoorBen Ootjers| Er zijn 11 reacties op dit artikel | Permalink
+Computable Expert
+ 
+Ben Ootjers 
+Consultant Microsoft Solutions
+Expert van Computable voor het topic Development
+Meer
+Vaak wordt bij software-ontwikkeling gezegd dat er documentatie van het gemaakte programma of het systeem ontbreekt. Vooral technische documentatie is doorgaans afwezig. In dit artikel geef ik aan waarom het technisch ontwerp juist in de prullenbak thuishoort.
+De namen functioneel en technisch ontwerp komen oorspronkelijk uit de System Development Methodology (SDM). Deze ontwikkelmethodiek is beter bekend als de watervalmethode. SDM is verouderd en de meeste software-ontwikkeling gaat nu iteratief met als methodiek bijvoorbeeld RUP of Scrum. Hierbij is afstand genomen van het idee dat in één keer een totaal ontwerp gemaakt en uitgewerkt kan worden. Oorspronkelijk bevatte het technisch ontwerp vaak procedurenamen en beschrijvingen, detailschermen, datamodellen en datacomponenten. Dit was tot in detail beschrevenl. Welke documentatie wordt gemaakt is nauw verbonden met de gekozen ontwikkelmethodiek. Voor RUP wordt er bijvoorbeeld gewerkt met een software-architectuur document en analyse en design models. Binnen Scrum bestaat er geen technisch ontwerp of vergelijkbaar document. 
+
+Naar de prullenbak
+De eerste reden waarom het technisch ontwerp in de prullenbak zou horen te verdwijnen is dat het document niet past binnen de huidige methodieken. Als er gekozen wordt voor Scrum is er eigenlijk geen technisch ontwerp. In de praktijk worden er wel vaak documenten gemaakt met een technische inslag. Dit wil ik geen technisch ontwerp noemen omdat het niet de volledigheid en vorm van het vroegere technisch ontwerp kent. De ontwerpdocumenten worden gebruikt in de discussies en bewijzen vooral hun nut tijdens ontwerpen en ontwikkelen. 
+De tweede reden waarom het technisch ontwerp in de prullenbak hoort te verdwijnen is, omdat het document moeilijk te onderhouden is. Er staan zoveel details in een technisch ontwerp dat het nagenoeg altijd moet wijzigen als de software wijzigt. Soms wordt het document zelfs vanuit commentaar in de code of vanuit metadata in het databasemodel gegenereerd. Vaak is dit een eenmalige actie en wordt het document later slecht bijgehouden. Nieuwe ontwikkelaars weten niet van het bestaan van het document, of hebben er geen vertrouwen in, met als gevolg dat het niet gebruikt wordt. Er wordt liever in de code gekeken. Het document wordt dus later in het software- ontwikkeltraject niet gebruikt, maar alleen tijdens het ontwerpen zelf.
+
+Technische documentatie niet nuttig?
+Technische documentatie is zeker nuttig omdat het een abstractie is van de code. Deze abstractie helpt de ontwikkelaar bij aanpassingen of bij de analyse van problemen. De veelgemaakte fout is echter dat er teveel naar de details wordt gekeken. De systeemstructuur of kernprincipes worden dan vaak vergeten. Maar documentatie op architectuurniveau is juist wel belangrijk om te hebben. Software-architectuur gaat over de essentie van de gemaakte software en verandert ook niet zo snel. Een architectuuraanpassing kost veel meer moeite en zal niet snel doorgevoerd worden. Het beschrijven van de architectuur helpt ontwikkelaars enorm bij het begrijpen en uitbreiden van de gemaakte software. 
+Buiten de architectuur is er tijdens het ontwerpen ook behoefte aan meer technisch detail. Het maken van klasse en sequence diagrammen is niet ongebruikelijk en ook zeer nuttig in de ontwerpfase. Ook hier helpt de abstractie in de discussies. Het bewaren van dergelijke modellen is niet zo nuttig. De diagrammen worden immers niet bijgehouden en verder zijn er vaak alleen maar delen tot in dat detail beschreven. De diagrammen worden namelijk voor een bepaald project gemaakt. Zeker als de diagrammen ouder worden, verliezen ze hun waarde. 
+Als eenmaal keuze is gemaakt om de diagrammen niet te onderhouden, dan worden ook de kwaliteitseisen met betrekking tot het model anders. Het maakt niet meer uit dat ze niet met een duur tool zijn gemaakt, maar gewoon met potlood en papier. Ook een whiteboard diagram voldoet prima. Een foto hiervan kan eenvoudig later nog worden gebruikt. Tijdens het ontwerpen helpen de diagrammen je op een andere manier na te denken over de te maken oplossing. Tijdens ontwikkeling helpen ze vervolgens met het uitzetten van de richting en grote lijnen, maar daarna kunnen de diagrammen gewoon naar de prullenbak.
+
+
+Read more: http://www.computable.nl/artikel/opinie/development/4367437/1277180/technisch-ontwerp-hoort-in-de-prullenbak.html#ixzz1mLDJP2Ez

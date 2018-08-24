@@ -1,0 +1,1 @@
+Dit is een file om encryptie te testen.

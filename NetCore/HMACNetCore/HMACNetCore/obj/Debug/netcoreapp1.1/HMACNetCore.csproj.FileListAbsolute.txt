@@ -1,0 +1,9 @@
+c:\users\instructor\documents\visual studio 2017\Projects\HMACNetCore\HMACNetCore\bin\Debug\netcoreapp1.1\HMACNetCore.deps.json
+c:\users\instructor\documents\visual studio 2017\Projects\HMACNetCore\HMACNetCore\bin\Debug\netcoreapp1.1\HMACNetCore.runtimeconfig.json
+c:\users\instructor\documents\visual studio 2017\Projects\HMACNetCore\HMACNetCore\bin\Debug\netcoreapp1.1\HMACNetCore.runtimeconfig.dev.json
+c:\users\instructor\documents\visual studio 2017\Projects\HMACNetCore\HMACNetCore\bin\Debug\netcoreapp1.1\HMACNetCore.dll
+c:\users\instructor\documents\visual studio 2017\Projects\HMACNetCore\HMACNetCore\bin\Debug\netcoreapp1.1\HMACNetCore.pdb
+c:\users\instructor\documents\visual studio 2017\Projects\HMACNetCore\HMACNetCore\obj\Debug\netcoreapp1.1\HMACNetCore.csprojResolveAssemblyReference.cache
+c:\users\instructor\documents\visual studio 2017\Projects\HMACNetCore\HMACNetCore\obj\Debug\netcoreapp1.1\HMACNetCore.AssemblyInfo.cs
+c:\users\instructor\documents\visual studio 2017\Projects\HMACNetCore\HMACNetCore\obj\Debug\netcoreapp1.1\HMACNetCore.dll
+c:\users\instructor\documents\visual studio 2017\Projects\HMACNetCore\HMACNetCore\obj\Debug\netcoreapp1.1\HMACNetCore.pdb

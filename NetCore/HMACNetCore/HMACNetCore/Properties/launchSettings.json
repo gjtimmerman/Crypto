@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "HMACNetCore": {
+      "commandName": "Project",
+      "commandLineArgs": "-v \"Technisch Ontwerp.txt\" MyHMACKey"
+    }
+  }
+}

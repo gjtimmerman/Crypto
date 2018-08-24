@@ -1,0 +1,2 @@
+Dit is een testfile om encryptie te testen.
+Het gaat om een symmetrische sleutel die gewrapped is.

@@ -1,0 +1,9 @@
+c:\users\instructor\documents\visual studio 2017\Projects\SignWithCertificateNetCore\SignWithCertificateNetCore\bin\Debug\netcoreapp1.1\SignWithCertificateNetCore.deps.json
+c:\users\instructor\documents\visual studio 2017\Projects\SignWithCertificateNetCore\SignWithCertificateNetCore\bin\Debug\netcoreapp1.1\SignWithCertificateNetCore.runtimeconfig.json
+c:\users\instructor\documents\visual studio 2017\Projects\SignWithCertificateNetCore\SignWithCertificateNetCore\bin\Debug\netcoreapp1.1\SignWithCertificateNetCore.runtimeconfig.dev.json
+c:\users\instructor\documents\visual studio 2017\Projects\SignWithCertificateNetCore\SignWithCertificateNetCore\bin\Debug\netcoreapp1.1\SignWithCertificateNetCore.dll
+c:\users\instructor\documents\visual studio 2017\Projects\SignWithCertificateNetCore\SignWithCertificateNetCore\obj\Debug\netcoreapp1.1\SignWithCertificateNetCore.csprojResolveAssemblyReference.cache
+c:\users\instructor\documents\visual studio 2017\Projects\SignWithCertificateNetCore\SignWithCertificateNetCore\obj\Debug\netcoreapp1.1\SignWithCertificateNetCore.AssemblyInfo.cs
+c:\Users\Instructor\Documents\Visual Studio 2017\Projects\SignWithCertificateNetCore\SignWithCertificateNetCore\bin\Debug\netcoreapp1.1\SignWithCertificateNetCore.pdb
+c:\Users\Instructor\Documents\Visual Studio 2017\Projects\SignWithCertificateNetCore\SignWithCertificateNetCore\obj\Debug\netcoreapp1.1\SignWithCertificateNetCore.dll
+c:\Users\Instructor\Documents\Visual Studio 2017\Projects\SignWithCertificateNetCore\SignWithCertificateNetCore\obj\Debug\netcoreapp1.1\SignWithCertificateNetCore.pdb

@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "ConsoleAppNetCoreEncr": {
+      "commandName": "Project",
+      "commandLineArgs": "-d MyTest.txt.encrypted Pa$$w0rd"
+    }
+  }
+}
