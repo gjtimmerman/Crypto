@@ -21,7 +21,7 @@ public class HMacSigning {
 
 	public static KeyStore OpenKeyStore(String KeyStoreFileName, char [] KeyStorePassword) throws KeyStoreException, NoSuchAlgorithmException, CertificateException, IOException
 	{
-		KeyStore myKeyStore = KeyStore.getInstance("jceks");
+		KeyStore myKeyStore = KeyStore.getInstance(KeyStore.getDefaultType());
 		File f = new File(KeyStoreFileName);
 		FileInputStream fis;
 		if (f.exists())
