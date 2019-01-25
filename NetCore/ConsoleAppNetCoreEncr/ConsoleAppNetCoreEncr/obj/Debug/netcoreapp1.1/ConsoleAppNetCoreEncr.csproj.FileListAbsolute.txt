@@ -1,9 +1,0 @@
-C:\Users\Instructor\Documents\Visual Studio 2017\Projects\ConsoleAppNetCoreEncr\ConsoleAppNetCoreEncr\bin\Debug\netcoreapp1.1\ConsoleAppNetCoreEncr.deps.json
-C:\Users\Instructor\Documents\Visual Studio 2017\Projects\ConsoleAppNetCoreEncr\ConsoleAppNetCoreEncr\bin\Debug\netcoreapp1.1\ConsoleAppNetCoreEncr.runtimeconfig.json
-C:\Users\Instructor\Documents\Visual Studio 2017\Projects\ConsoleAppNetCoreEncr\ConsoleAppNetCoreEncr\bin\Debug\netcoreapp1.1\ConsoleAppNetCoreEncr.runtimeconfig.dev.json
-C:\Users\Instructor\Documents\Visual Studio 2017\Projects\ConsoleAppNetCoreEncr\ConsoleAppNetCoreEncr\obj\Debug\netcoreapp1.1\ConsoleAppNetCoreEncr.csprojResolveAssemblyReference.cache
-C:\Users\Instructor\Documents\Visual Studio 2017\Projects\ConsoleAppNetCoreEncr\ConsoleAppNetCoreEncr\obj\Debug\netcoreapp1.1\ConsoleAppNetCoreEncr.AssemblyInfo.cs
-C:\Users\Instructor\Documents\Visual Studio 2017\Projects\ConsoleAppNetCoreEncr\ConsoleAppNetCoreEncr\bin\Debug\netcoreapp1.1\ConsoleAppNetCoreEncr.dll
-C:\Users\Instructor\Documents\Visual Studio 2017\Projects\ConsoleAppNetCoreEncr\ConsoleAppNetCoreEncr\bin\Debug\netcoreapp1.1\ConsoleAppNetCoreEncr.pdb
-C:\Users\Instructor\Documents\Visual Studio 2017\Projects\ConsoleAppNetCoreEncr\ConsoleAppNetCoreEncr\obj\Debug\netcoreapp1.1\ConsoleAppNetCoreEncr.dll
-C:\Users\Instructor\Documents\Visual Studio 2017\Projects\ConsoleAppNetCoreEncr\ConsoleAppNetCoreEncr\obj\Debug\netcoreapp1.1\ConsoleAppNetCoreEncr.pdb
