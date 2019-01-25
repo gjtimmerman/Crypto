@@ -53,7 +53,7 @@ public class HMacSigning {
 			KeyStore myKeyStore = OpenKeyStore(args[2],args[3].toCharArray());
 			if (myKeyStore == null)
 			{
-				myKeyStore = KeyStore.getInstance("jceks");
+				myKeyStore = KeyStore.getInstance(KeyStore.getDefaultType());
 				myKeyStore.load(null, null);
 			}
 			if (myKeyStore.isKeyEntry(args[4]))
