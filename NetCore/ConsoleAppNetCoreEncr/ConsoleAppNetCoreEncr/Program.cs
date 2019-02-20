@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Text;
 using System.IO;
 using System.Security.Cryptography;
@@ -87,10 +87,10 @@ namespace ConsoleAppNetCoreEncr
                                     outStream.Flush();
                                     Console.WriteLine("Decryption completed.");
                                 }
-                            }
-                        }
-                    }
-                }
+               			 	}
+						}
+					}
+				}
             }
             else
             {
