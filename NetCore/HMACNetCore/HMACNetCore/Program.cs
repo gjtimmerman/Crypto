@@ -18,42 +18,49 @@ namespace HMACNetCore
                 HMACSHA256 myHashAlg = new HMACSHA256();
                 if (File.Exists(args[2]))
                 {
-                    FileStream fskeyfile = new FileStream(args[2], FileMode.Open);
-                    byte[] key = new byte[fskeyfile.Length];
-                    fskeyfile.Read(key, 0, key.Length);
-                    fskeyfile.Dispose();
-                    myHashAlg.Key = key;
+                    using (FileStream fskeyfile = new FileStream(args[2], FileMode.Open))
+                    {
+                        byte[] key = new byte[fskeyfile.Length];
+                        fskeyfile.Read(key, 0, key.Length);
+                        myHashAlg.Key = key;
+                   }
                 }
                 else
                 {
-                    FileStream fskeyfile = new FileStream(args[2], FileMode.Create);
-                    fskeyfile.Write(myHashAlg.Key, 0, myHashAlg.Key.Length);
-                    fskeyfile.Flush();
-                    fskeyfile.Dispose();
+                    using (FileStream fskeyfile = new FileStream(args[2], FileMode.Create))
+                    {
+                        fskeyfile.Write(myHashAlg.Key, 0, myHashAlg.Key.Length);
+                    }
                 }
-                FileStream inFile = new FileStream(args[1], FileMode.Open);
-                byte[] hValue = myHashAlg.ComputeHash(inFile);
-                inFile.Dispose();
-                FileStream hFile = new FileStream(args[1] + ".signature", FileMode.Create);
-                hFile.Write(hValue, 0, hValue.Length);
-                hFile.Flush();
-                hFile.Dispose();
+                using (FileStream inFile = new FileStream(args[1], FileMode.Open))
+                {
+                    byte[] hValue = myHashAlg.ComputeHash(inFile);
+                    using (FileStream hFile = new FileStream(args[1] + ".signature", FileMode.Create))
+                    {
+                        hFile.Write(hValue, 0, hValue.Length);
+                    }
+                }
             }
             else if (args[0] == "-v")
             {
-                FileStream fskeyfile = new FileStream(args[2], FileMode.Open);
-                byte[] key = new byte[fskeyfile.Length];
-                fskeyfile.Read(key, 0, key.Length);
-                fskeyfile.Dispose();
                 HMACSHA256 myHashAlg = new HMACSHA256();
-                myHashAlg.Key = key;
-                FileStream inFile = new FileStream(args[1], FileMode.Open);
-                byte[] hValue = myHashAlg.ComputeHash(inFile);
-                inFile.Dispose();
-                FileStream hFile = new FileStream(args[1] + ".signature", FileMode.Open);
-                byte[] orghValue = new byte[hFile.Length];
-                hFile.Read(orghValue, 0, orghValue.Length);
-                hFile.Dispose();
+                using (FileStream fskeyfile = new FileStream(args[2], FileMode.Open))
+                {
+                    byte[] key = new byte[fskeyfile.Length];
+                    fskeyfile.Read(key, 0, key.Length);
+                    myHashAlg.Key = key;
+                }
+                byte[] hValue;
+                using (FileStream inFile = new FileStream(args[1], FileMode.Open))
+                {
+                    hValue = myHashAlg.ComputeHash(inFile);
+                }
+                byte[] orghValue;
+                using (FileStream hFile = new FileStream(args[1] + ".signature", FileMode.Open))
+                {
+                    orghValue = new byte[hFile.Length];
+                    hFile.Read(orghValue, 0, orghValue.Length);
+                }
                 bool identical = true;
                 for (int i = 0; i < hValue.Length; i++)
                     if (hValue[i] != orghValue[i])
