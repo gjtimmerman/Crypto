@@ -32,60 +32,63 @@ namespace ConsoleAppNetCoreEncr
 
                 ICryptoTransform cryptoTransformer = algorithm.CreateEncryptor();
                 byte[] data = File.ReadAllBytes(args[1]);
-                FileStream fStream = File.Open(args[1] + ".encrypted", FileMode.OpenOrCreate);
-                BinaryWriter bWriter = new BinaryWriter(fStream);
-                bWriter.Write(salt.Length);
-                bWriter.Write(salt);
-                bWriter.Write(iv.Length);
-                bWriter.Write(iv);
-                bWriter.Flush();
+                using (FileStream fStream = File.Open(args[1] + ".encrypted", FileMode.OpenOrCreate))
+                {
+                    using (BinaryWriter bWriter = new BinaryWriter(fStream))
+                    {
+                        bWriter.Write(salt.Length);
+                        bWriter.Write(salt);
+                        bWriter.Write(iv.Length);
+                        bWriter.Write(iv);
+                        bWriter.Flush();
 
-                CryptoStream cStream = new CryptoStream(fStream, cryptoTransformer, CryptoStreamMode.Write);
+                        using (CryptoStream cStream = new CryptoStream(fStream, cryptoTransformer, CryptoStreamMode.Write))
+                        {
 
-                BinaryWriter sWriter = new BinaryWriter(cStream);
-
-                sWriter.Write(data);
-
-
-                sWriter.Flush();
-
-                cStream.Flush();
-                fStream.Flush();
-                sWriter.Dispose();
+                            using (BinaryWriter sWriter = new BinaryWriter(cStream))
+                            {
+                                sWriter.Write(data);
+                            }
+                        }
+                    }
+                }
             }
             else if (args[0] == "-d")
             {
-                FileStream fStream = File.OpenRead(args[1]);
-                BinaryReader reader = new BinaryReader(fStream);
-                int saltLength = reader.ReadInt32();
-                byte[] salt = reader.ReadBytes(saltLength);
-                int ivLength = reader.ReadInt32();
-                byte[] iv = reader.ReadBytes(ivLength);
+                using (FileStream fStream = File.OpenRead(args[1]))
+                {
+                    BinaryReader reader = new BinaryReader(fStream);
+                    int saltLength = reader.ReadInt32();
+                    byte[] salt = reader.ReadBytes(saltLength);
+                    int ivLength = reader.ReadInt32();
+                    byte[] iv = reader.ReadBytes(ivLength);
 
-                Aes algorithm = Aes.Create();
-                algorithm.Padding = PaddingMode.PKCS7;
-                Rfc2898DeriveBytes keyGenerator = new Rfc2898DeriveBytes(args[2], salt);
-                byte[] key = keyGenerator.GetBytes(algorithm.KeySize/8);
+                    Aes algorithm = Aes.Create();
+                    algorithm.Padding = PaddingMode.PKCS7;
+                    Rfc2898DeriveBytes keyGenerator = new Rfc2898DeriveBytes(args[2], salt);
+                    byte[] key = keyGenerator.GetBytes(algorithm.KeySize / 8);
 
-                ICryptoTransform cryptoTransformer = algorithm.CreateDecryptor(key, iv);
+                    ICryptoTransform cryptoTransformer = algorithm.CreateDecryptor(key, iv);
 
-                CryptoStream cStream = new CryptoStream(fStream, cryptoTransformer, CryptoStreamMode.Read);
+                    using (CryptoStream cStream = new CryptoStream(fStream, cryptoTransformer, CryptoStreamMode.Read))
+                    {
 
-                BinaryReader sReader = new BinaryReader(cStream);
+                        using (BinaryReader sReader = new BinaryReader(cStream))
+                        {
 
-                int datalen = (int)fStream.Length - 4 - saltLength - 4 - ivLength;
-                byte[] data = sReader.ReadBytes(datalen);
+                            int datalen = (int)fStream.Length - 4 - saltLength - 4 - ivLength;
+                            byte[] data = sReader.ReadBytes(datalen);
 
-                FileStream outStream = File.Open(args[1].Replace("encrypted", "decrypted"), FileMode.OpenOrCreate);
+                            using (FileStream outStream = File.Open(args[1].Replace("encrypted", "decrypted"), FileMode.OpenOrCreate))
+                            {
 
-                outStream.Write(data, 0, data.Length);
-                outStream.Flush();
-                cStream.Flush();
-                fStream.Flush();
-                cStream.Dispose();
-                outStream.Dispose();
-                Console.WriteLine("Decryption completed.");
-
+                                outStream.Write(data, 0, data.Length);
+                                outStream.Flush();
+                                Console.WriteLine("Decryption completed.");
+                            }
+                        }
+                    }
+                }
             }
             else
             {

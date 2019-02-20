@@ -11,6 +11,7 @@ namespace SignWithCertificateNetCore
         {
             X509Store myStore = new X509Store(sn, sl);
             myStore.Open(OpenFlags.ReadOnly);
+            
             X509Certificate2Collection myColl = myStore.Certificates.Find(X509FindType.FindBySubjectName, subjectName, true);
             if (myColl.Count == 0)
             {
@@ -22,8 +23,10 @@ namespace SignWithCertificateNetCore
                 }
                 myStore.Dispose();
             }
+            
             return myColl;
         }
+
         static void Main(string[] args)
         {
             if (args.Length < 3)
@@ -37,21 +40,23 @@ namespace SignWithCertificateNetCore
                 if (myColl.Count == 0)
                     return;
                 X509Certificate2 myCertificate = myColl[0];
-                RSACryptoServiceProvider myProv;
-                if (myCertificate.GetRSAPrivateKey() is RSACryptoServiceProvider)
-                    myProv = (RSACryptoServiceProvider)myCertificate.GetRSAPrivateKey();
+                RSA myProv;
+                if (myCertificate.GetRSAPrivateKey() is RSA)
+                    myProv = (RSA)myCertificate.GetRSAPrivateKey();
                 else
                 {
-                    myProv = new RSACryptoServiceProvider();
+                    myProv = RSA.Create();
                     myProv.ImportParameters(myCertificate.GetRSAPrivateKey().ExportParameters(true));
                 }
-                FileStream fsin = new FileStream(args[1], FileMode.Open);
-                byte[] hash = myProv.SignData(fsin, HashAlgorithmName.SHA1, RSASignaturePadding.Pkcs1);
-                fsin.Dispose();
-                FileStream fshash = new FileStream(args[1] + ".signature", FileMode.Create);
-                fshash.Write(hash, 0, hash.Length);
-                fshash.Flush();
-                fshash.Dispose();
+                byte[] hash;
+                using (FileStream fsin = new FileStream(args[1], FileMode.Open))
+                {
+                    hash = myProv.SignData(fsin, HashAlgorithmName.SHA1, RSASignaturePadding.Pkcs1);
+                }
+                using (FileStream fshash = new FileStream(args[1] + ".signature", FileMode.Create))
+                {
+                    fshash.Write(hash, 0, hash.Length);
+                }
 
             }
             else if (args[0] == "-v")
@@ -60,24 +65,27 @@ namespace SignWithCertificateNetCore
                 if (myColl.Count == 0)
                     return;
                 X509Certificate2 myCertificate = myColl[0];
-                RSACryptoServiceProvider myProv;
-                if (myCertificate.GetRSAPublicKey() is RSACryptoServiceProvider)
-                    myProv = (RSACryptoServiceProvider)myCertificate.GetRSAPublicKey();
+                RSA myProv;
+                if (myCertificate.GetRSAPublicKey() is RSA)
+                    myProv = (RSA)myCertificate.GetRSAPublicKey();
                 else
                 {
-                    myProv = new RSACryptoServiceProvider();
+                    myProv = RSA.Create();
                     myProv.ImportParameters(myCertificate.GetRSAPublicKey().ExportParameters(false));
                 }
-                FileStream fssign = new FileStream(args[1] + ".signature", FileMode.Open);
-                byte[] sign = new byte[fssign.Length];
-                fssign.Read(sign, 0, sign.Length);
-                fssign.Dispose();
-                FileStream fsin = new FileStream(args[1], FileMode.Open);
-                if (myProv.VerifyData(fsin, sign, HashAlgorithmName.SHA1, RSASignaturePadding.Pkcs1))
-                    Console.WriteLine("Signature is valid");
-                else
-                    Console.WriteLine("Signature is not valid");
-                fsin.Dispose();
+                byte[] sign;
+                using (FileStream fssign = new FileStream(args[1] + ".signature", FileMode.Open))
+                {
+                    sign = new byte[fssign.Length];
+                    fssign.Read(sign, 0, sign.Length);
+                }
+                using (FileStream fsin = new FileStream(args[1], FileMode.Open))
+                {
+                    if (myProv.VerifyData(fsin, sign, HashAlgorithmName.SHA1, RSASignaturePadding.Pkcs1))
+                        Console.WriteLine("Signature is valid");
+                    else
+                        Console.WriteLine("Signature is not valid");
+                }
             }
             else
             {
