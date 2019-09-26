@@ -1,4 +1,4 @@
-package exercise3;
+package exercise4;
 
 import java.io.File;
 import java.io.FileInputStream;
