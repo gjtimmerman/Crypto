@@ -67,7 +67,7 @@ void deriveKey(const char* password, char *keyBuffer, NCRYPT_PROV_HANDLE provHan
 	bufferDesc.cBuffers = 3ul;
 	bufferDesc.pBuffers = cryptBuffers;
 	DWORD cbResult;
-	status = NCryptKeyDerivation(keyHandle, &bufferDesc, keyBuffer, 32, &cbResult, 0);
+	status = NCryptKeyDerivation(keyHandle, &bufferDesc, keyBuffer, 16, &cbResult, 0);
 	if (evaluateStatus(status) != 0)
 		return;
 	status = NCryptFreeObject(keyHandle);
@@ -84,14 +84,38 @@ void encrypt(const char* fileName, const char* password)
 	status = NCryptOpenStorageProvider(&provHandle, 0, 0);
 	if (evaluateStatus(status) != 0)
 		return;
-	char keyBuffer[32];
-	deriveKey(password, keyBuffer, provHandle);
+	char* pkeyData = malloc(sizeof(NCRYPT_KEY_BLOB_HEADER) + 16 + sizeof(NCRYPT_AES_ALGORITHM));
+	deriveKey(password, pkeyData + sizeof(NCRYPT_KEY_BLOB_HEADER)+ sizeof(NCRYPT_AES_ALGORITHM), provHandle);
 	NCryptBufferDesc bufferDesc;
-	BCRYPT_KEY_DATA_BLOB_HEADER keyDataHeader;
-	status = NCryptImportKey(provHandle, 0, BCRYPT_KEY_DATA_BLOB, &bufferDesc, &keyHandle,(PBYTE) & keyDataHeader, sizeof(BCRYPT_KEY_DATA_BLOB_HEADER), 0);
+	bufferDesc.cBuffers = 0;
+	bufferDesc.ulVersion = NCRYPTBUFFER_VERSION;
+	NCryptBuffer buffers[1];
+	bufferDesc.pBuffers = NULL;
+//	bufferDesc.pBuffers = buffers;
+	unsigned long long algId = CALG_AES_128;
+	buffers[0].BufferType = NCRYPTBUFFER_PKCS_ALG_ID;
+	buffers[0].pvBuffer = &algId;
+	buffers[0].cbBuffer = sizeof(unsigned long long);
+	NCRYPT_KEY_BLOB_HEADER *pkeyDataHeader = (NCRYPT_KEY_BLOB_HEADER*)pkeyData;
+	pkeyDataHeader->dwMagic = NCRYPT_CIPHER_KEY_BLOB_MAGIC;
+	pkeyDataHeader->cbSize = sizeof(NCRYPT_KEY_BLOB_HEADER);
+	pkeyDataHeader->cbKeyData = 16;
+	pkeyDataHeader->cbAlgName = sizeof(NCRYPT_AES_ALGORITHM);
+	wcscpy_s((wchar_t*)pkeyDataHeader + sizeof(NCRYPT_KEY_BLOB_HEADER),sizeof(NCRYPT_AES_ALGORITHM), NCRYPT_AES_ALGORITHM);
+	status = NCryptImportKey(provHandle, 0, NCRYPT_CIPHER_KEY_BLOB, &bufferDesc, &keyHandle,(PBYTE) pkeyDataHeader, sizeof(NCRYPT_KEY_BLOB_HEADER) + 16 + sizeof(NCRYPT_AES_ALGORITHM), 0);
 	if (evaluateStatus(status) != 0)
 		return;
-
+	free(pkeyData);
+	//status = NCryptSetProperty(keyHandle, NCRYPT_ALGORITHM_PROPERTY, (PBYTE)NCRYPT_AES_ALGORITHM, (DWORD)(wcslen(NCRYPT_AES_ALGORITHM) + 1) * sizeof(WCHAR), 0);
+	//if (evaluateStatus(status) != 0)
+	//	return;
+	//DWORD keyLength = 128;
+	//status = NCryptSetProperty(keyHandle, NCRYPT_LENGTH_PROPERTY,(PBYTE) & keyLength, (DWORD)sizeof(DWORD), 0);
+	//if (evaluateStatus(status) != 0)
+	//	return;
+	status = NCryptFinalizeKey(keyHandle, 0);
+	if (evaluateStatus(status) != 0)
+		return;
 }
 
 void decrypt(const char* filename, const char* password)
