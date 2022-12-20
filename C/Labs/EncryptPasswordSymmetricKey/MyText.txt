@@ -1,2 +1,0 @@
-Dit is een testfile om te zien of encryptie werkt.
-Ik ben benieuwd.

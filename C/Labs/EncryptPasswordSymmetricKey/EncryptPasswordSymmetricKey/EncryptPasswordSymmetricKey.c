@@ -128,15 +128,15 @@ void encrypt(const char* fileName, const char* password)
 	free(pkeyData);
 	FILE* inputFile = fopen(fileName, "r");
 	if (inputFile == NULL)
-		return 1;
+		return;
 	char* outputFileName = malloc(strlen(fileName) + strlen(".encrypted") + 1);
 	strcpy(outputFileName, fileName);
 	strcat(outputFileName, ".encrypted");
 	FILE* outputFile = fopen(outputFileName, "w");
 	if (outputFile == NULL)
-		return 1;
+		return;
 	char buffer[16];
-	int cb = fread(buffer, 1, 16, inputFile);
+	size_t cb = fread(buffer, 1, 16, inputFile);
 	char encrypted[16];
 	DWORD cbResult;
 	while (cb == 16)
@@ -147,7 +147,7 @@ void encrypt(const char* fileName, const char* password)
 		fwrite(encrypted, 1, 16, outputFile);
 		cb = fread(buffer, 1, 16, inputFile);
 	}
-	status = BCryptEncrypt(pKeyHandle, buffer, cb, NULL, NULL, 0, encrypted, 16, &cbResult, BCRYPT_BLOCK_PADDING);
+	status = BCryptEncrypt(pKeyHandle, buffer,(ULONG) cb, NULL, NULL, 0, encrypted, 16, &cbResult, BCRYPT_BLOCK_PADDING);
 	if (evaluateStatus(status) != 0)
 		return;
 	fwrite(encrypted, 1, 16, outputFile);
@@ -182,15 +182,15 @@ void decrypt(const char* fileName, const char* password)
 	free(pkeyData);
 	FILE* inputFile = fopen(fileName, "r");
 	if (inputFile == NULL)
-		return 1;
+		return;
 	char* outputFileName = malloc(strlen(fileName) + strlen(".decrypted") + 1);
 	strcpy(outputFileName, fileName);
 	strcat(outputFileName, ".decrypted");
 	FILE* outputFile = fopen(outputFileName, "w");
 	if (outputFile == NULL)
-		return 1;
+		return;
 	char buffer[16];
-	int cb = fread(buffer, 1, 16, inputFile);
+	size_t cb = fread(buffer, 1, 16, inputFile);
 	char decrypted[16];
 	DWORD cbResult;
 	while (cb == 16)
@@ -201,10 +201,10 @@ void decrypt(const char* fileName, const char* password)
 		fwrite(decrypted, 1, 16, outputFile);
 		cb = fread(buffer, 1, 16, inputFile);
 	}
-//	status = BCryptDecrypt(pKeyHandle, pOutput, 16 * 2, NULL, NULL, 0, pDecrypted, 16 * 2, &cbResult, BCRYPT_BLOCK_PADDING);
-//	if (evaluateStatus(status) != 0)
-//		return;
-	fwrite(decrypted, 1, 16, outputFile);
+	status = BCryptDecrypt(pKeyHandle, buffer, cb, NULL, NULL, 0, decrypted, 16, &cbResult, BCRYPT_BLOCK_PADDING);
+	if (evaluateStatus(status) != 0)
+		return;
+	fwrite(decrypted, 1, cbResult, outputFile);
 	fclose(inputFile);
 	fclose(outputFile);
 
