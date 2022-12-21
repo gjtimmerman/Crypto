@@ -126,13 +126,13 @@ void encrypt(const char* fileName, const char* password)
 	if (evaluateStatus(status) != 0)
 		return;
 	free(pkeyData);
-	FILE* inputFile = fopen(fileName, "r");
+	FILE* inputFile = fopen(fileName, "rb");
 	if (inputFile == NULL)
 		return;
 	char* outputFileName = malloc(strlen(fileName) + strlen(".encrypted") + 1);
 	strcpy(outputFileName, fileName);
 	strcat(outputFileName, ".encrypted");
-	FILE* outputFile = fopen(outputFileName, "w");
+	FILE* outputFile = fopen(outputFileName, "wb");
 	if (outputFile == NULL)
 		return;
 	char buffer[16];
@@ -180,36 +180,56 @@ void decrypt(const char* fileName, const char* password)
 	if (evaluateStatus(status) != 0)
 		return;
 	free(pkeyData);
-	FILE* inputFile = fopen(fileName, "r");
+	FILE* inputFile = fopen(fileName, "rb");
 	if (inputFile == NULL)
 		return;
 	char* outputFileName = malloc(strlen(fileName) + strlen(".decrypted") + 1);
 	strcpy(outputFileName, fileName);
 	strcat(outputFileName, ".decrypted");
-	FILE* outputFile = fopen(outputFileName, "w");
+	FILE* outputFile = fopen(outputFileName, "wb");
 	if (outputFile == NULL)
+	{
+		fclose(inputFile);
 		return;
-	char buffer[16];
-	size_t cb = fread(buffer, 1, 16, inputFile);
+	}
+	char buffer1[16];
+	char buffer2[16];
+	char* pBuffer1 = buffer1;
+	char* pBuffer2 = buffer2;
 	char decrypted[16];
 	DWORD cbResult;
-	while (cb == 16)
+	size_t cb = fread(pBuffer1, 1, 16, inputFile);
+	if (cb == 16)
 	{
-		status = BCryptDecrypt(pKeyHandle, buffer, 16, NULL, NULL, 0, decrypted , 16, &cbResult, 0);
-		if (evaluateStatus(status) != 0)
+		cb = fread(pBuffer2, 1, 16, inputFile);
+		while (cb == 16)
+		{
+			status = BCryptDecrypt(pKeyHandle, pBuffer1, 16, NULL, NULL, 0, decrypted, 16, &cbResult, 0);
+			if (evaluateStatus(status) != 0)
+				return;
+			fwrite(decrypted, 1, 16, outputFile);
+			char* tmp = pBuffer1;
+			pBuffer1 = pBuffer2;
+			pBuffer2 = tmp;
+			cb = fread(pBuffer2, 1, 16, inputFile);
+		}
+		if (cb != 0)
+		{
+			fprintf(stderr, "Invalid padding");
+			fclose(inputFile);
+			fclose(outputFile);
+			status = BCryptDestroyKey(pKeyHandle);
+			if (evaluateStatus(status) != 0)
+				return;
 			return;
-		fwrite(decrypted, 1, 16, outputFile);
-		cb = fread(buffer, 1, 16, inputFile);
+		}
 	}
-	status = BCryptDecrypt(pKeyHandle, buffer, cb, NULL, NULL, 0, decrypted, 16, &cbResult, BCRYPT_BLOCK_PADDING);
+	status = BCryptDecrypt(pKeyHandle, pBuffer1, 16, NULL, NULL, 0, decrypted, 16, &cbResult, BCRYPT_BLOCK_PADDING);
 	if (evaluateStatus(status) != 0)
 		return;
 	fwrite(decrypted, 1, cbResult, outputFile);
 	fclose(inputFile);
 	fclose(outputFile);
-
-	if (evaluateStatus(status) != 0)
-		return;
 	status = BCryptDestroyKey(pKeyHandle);
 	if (evaluateStatus(status) != 0)
 		return;
