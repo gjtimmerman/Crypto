@@ -112,6 +112,9 @@ void encrypt(char* fileName, char* keyName, char* keyFileName)
 	status = NCryptFreeObject(keyHandle);
 	if (evaluateStatus(status) != 0)
 		return;
+	status = NCryptFreeObject(provHandle);
+	if (evaluateStatus(status) != 0)
+		return;
 	FILE* keyFile = fopen(keyFileName, "wb");
 	if (keyFile == NULL)
 		return;
@@ -131,7 +134,7 @@ void encrypt(char* fileName, char* keyName, char* keyFileName)
 	if (inputFile == NULL)
 	{
 		status = BCryptDestroyKey(symKeyHandle);
-		if (evaluateStatus(status) != 0)
+		if (evaluateBStatus(status) != 0)
 			return;
 		return;
 	}
@@ -144,7 +147,7 @@ void encrypt(char* fileName, char* keyName, char* keyFileName)
 	{
 		fclose(inputFile);
 		status = BCryptDestroyKey(symKeyHandle);
-		if (evaluateStatus(status) != 0)
+		if (evaluateBStatus(status) != 0)
 			return;
 		return;
 	}
@@ -155,12 +158,12 @@ void encrypt(char* fileName, char* keyName, char* keyFileName)
 	while (cb == BLOCKSIZE)
 	{
 		status = BCryptEncrypt(symKeyHandle, buffer, BLOCKSIZE, NULL, NULL, 0, encrypted, BLOCKSIZE, &cbResult, 0);
-		if (evaluateStatus(status) != 0)
+		if (evaluateBStatus(status) != 0)
 		{
 			fclose(inputFile);
 			fclose(outputFile);
 			status = BCryptDestroyKey(symKeyHandle);
-			if (evaluateStatus(status) != 0)
+			if (evaluateBStatus(status) != 0)
 				return;
 			return;
 		}
@@ -168,12 +171,12 @@ void encrypt(char* fileName, char* keyName, char* keyFileName)
 		cb = fread(buffer, 1, BLOCKSIZE, inputFile);
 	}
 	status = BCryptEncrypt(symKeyHandle, buffer, (ULONG)cb, NULL, NULL, 0, encrypted, BLOCKSIZE, &cbResult, BCRYPT_BLOCK_PADDING);
-	if (evaluateStatus(status) != 0)
+	if (evaluateBStatus(status) != 0)
 	{
 		fclose(inputFile);
 		fclose(outputFile);
 		status = BCryptDestroyKey(symKeyHandle);
-		if (evaluateStatus(status) != 0)
+		if (evaluateBStatus(status) != 0)
 			return;
 		return;
 	}
@@ -181,7 +184,10 @@ void encrypt(char* fileName, char* keyName, char* keyFileName)
 	fclose(inputFile);
 	fclose(outputFile);
 	status = BCryptDestroyKey(symKeyHandle);
-	if (evaluateStatus(status) != 0)
+	if (evaluateBStatus(status) != 0)
+		return;
+	status = BCryptCloseAlgorithmProvider(algHandle,0);
+	if (evaluateBStatus(status) != 0)
 		return;
 
 }
@@ -234,6 +240,9 @@ void decrypt(char* fileName, char* keyName, char* keyFileName)
 	status = NCryptFreeObject(keyHandle);
 	if (evaluateStatus(status) != 0)
 		return;
+	status = NCryptFreeObject(provHandle);
+	if (evaluateStatus(status) != 0)
+		return;
 	NTSTATUS bStatus;
 	BCRYPT_ALG_HANDLE algHandle;
 	BCRYPT_KEY_HANDLE symKeyHandle;
@@ -250,7 +259,7 @@ void decrypt(char* fileName, char* keyName, char* keyFileName)
 	if (inputFile == NULL)
 	{
 		status = BCryptDestroyKey(symKeyHandle);
-		if (evaluateStatus(status) != 0)
+		if (evaluateBStatus(status) != 0)
 			return;
 		return;
 	}
@@ -263,7 +272,7 @@ void decrypt(char* fileName, char* keyName, char* keyFileName)
 	{
 		fclose(inputFile);
 		status = BCryptDestroyKey(symKeyHandle);
-		if (evaluateStatus(status) != 0)
+		if (evaluateBStatus(status) != 0)
 			return;
 		return;
 	}
@@ -280,12 +289,12 @@ void decrypt(char* fileName, char* keyName, char* keyFileName)
 		while (cb == BLOCKSIZE)
 		{
 			status = BCryptDecrypt(symKeyHandle, pBuffer1, BLOCKSIZE, NULL, NULL, 0, decrypted, BLOCKSIZE, &cbResult, 0);
-			if (evaluateStatus(status) != 0)
+			if (evaluateBStatus(status) != 0)
 			{
 				fclose(inputFile);
 				fclose(outputFile);
 				status = BCryptDestroyKey(symKeyHandle);
-				if (evaluateStatus(status) != 0)
+				if (evaluateBStatus(status) != 0)
 					return;
 				return;
 			}
@@ -301,14 +310,15 @@ void decrypt(char* fileName, char* keyName, char* keyFileName)
 			fclose(inputFile);
 			fclose(outputFile);
 			status = BCryptDestroyKey(symKeyHandle);
-			if (evaluateStatus(status) != 0)
+			if (evaluateBStatus(status) != 0)
 				return;
 			return;
 		}
 	}
 	status = BCryptDecrypt(symKeyHandle, pBuffer1, BLOCKSIZE, NULL, NULL, 0, decrypted, BLOCKSIZE, &cbResult, BCRYPT_BLOCK_PADDING);
-	if (evaluateStatus(status) != 0)
+	if (evaluateBStatus(status) != 0)
 	{
+		status = BCryptDestroyKey(symKeyHandle);
 		fclose(inputFile);
 		fclose(outputFile);
 		return;
@@ -317,7 +327,10 @@ void decrypt(char* fileName, char* keyName, char* keyFileName)
 	fclose(inputFile);
 	fclose(outputFile);
 	status = BCryptDestroyKey(symKeyHandle);
-	if (evaluateStatus(status) != 0)
+	if (evaluateBStatus(status) != 0)
+		return;
+	status = BCryptCloseAlgorithmProvider(algHandle, 0);
+	if (evaluateBStatus(status) != 0)
 		return;
 
 }
