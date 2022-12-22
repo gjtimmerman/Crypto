@@ -33,13 +33,82 @@ int evaluateStatus(NTSTATUS status)
 
 }
 
+void computeHash(FILE *inputFile, char symKey[], char hashValue[])
+{
+	NTSTATUS status;
+	BCRYPT_ALG_HANDLE algHandle;
+	BCRYPT_HASH_HANDLE hashHandle;
+	status = BCryptOpenAlgorithmProvider(&algHandle, BCRYPT_SHA256_ALGORITHM, NULL, BCRYPT_ALG_HANDLE_HMAC_FLAG);
+	if (evaluateStatus(status) != 0)
+	{
+		return;
+	}
+	status = BCryptCreateHash(algHandle, &hashHandle, NULL, 0, symKey, KEYLENGTH, 0);
+	if (evaluateStatus(status) != 0)
+	{
+		return;
+	}
+	ULONG cbHash;
+	ULONG cbResult;
+	status = BCryptGetProperty(hashHandle, BCRYPT_HASH_LENGTH, (PUCHAR)&cbHash, sizeof(ULONG), &cbResult, 0);
+	if (evaluateStatus(status) != 0)
+	{
+		BCryptDestroyHash(hashHandle);
+		return;
+	}
+	if (cbHash != HASHSIZE)
+	{
+		fprintf(stderr, "Hash size not correct!");
+		BCryptDestroyHash(hashHandle);
+		return;
+
+	}
+	char buffer[BUFFERSIZE];
+	size_t cb = fread(buffer, 1, BUFFERSIZE, inputFile);
+	while (cb == BUFFERSIZE)
+	{
+		status = BCryptHashData(hashHandle, buffer, BUFFERSIZE, 0);
+		if (evaluateStatus(status) != 0)
+		{
+			fclose(inputFile);
+			BCryptDestroyHash(hashHandle);
+			return;
+		}
+		cb = fread(buffer, 1, BUFFERSIZE, inputFile);
+	}
+	fclose(inputFile);
+	status = BCryptHashData(hashHandle, buffer, (ULONG)cb, 0);
+	if (evaluateStatus(status) != 0)
+	{
+		BCryptDestroyHash(hashHandle);
+		return;
+	}
+	status = BCryptFinishHash(hashHandle, hashValue, HASHSIZE, 0);
+	if (evaluateStatus(status) != 0)
+	{
+		BCryptDestroyHash(hashHandle);
+		return;
+	}
+	status = BCryptDestroyHash(hashHandle);
+	if (evaluateStatus(status) != 0)
+	{
+		return;
+	}
+	status = BCryptCloseAlgorithmProvider(algHandle, 0);
+	if (evaluateStatus(status) != 0)
+	{
+		return;
+	}
+
+	return;
+}
+
 void sign(char* fileName, char* keyFileName)
 {
 	FILE* keyFile = fopen(keyFileName, "rb");
 	char symKey[KEYLENGTH];
 	NTSTATUS status;
 	BCRYPT_ALG_HANDLE algHandle;
-	BCRYPT_HASH_HANDLE hashHandle;
 	if (keyFile == NULL)
 	{
 		keyFile = fopen(keyFileName, "wb");
@@ -92,75 +161,21 @@ void sign(char* fileName, char* keyFileName)
 		fprintf(stderr, "Cannot open file: %s", fileName);
 		return;
 	}
-	status = BCryptOpenAlgorithmProvider(&algHandle, BCRYPT_SHA256_ALGORITHM, NULL, BCRYPT_ALG_HANDLE_HMAC_FLAG);
-	if (evaluateStatus(status) != 0)
-	{
-		return;
-	}
-	status = BCryptCreateHash(algHandle, &hashHandle, NULL, 0, symKey, KEYLENGTH, 0);
-	if (evaluateStatus(status) != 0)
-	{
-		return;
-	}
-	ULONG cbHash;
-	ULONG cbResult;
-	status = BCryptGetProperty(hashHandle, BCRYPT_HASH_LENGTH, (PUCHAR) & cbHash, sizeof(ULONG), &cbResult, 0);
-	if (evaluateStatus(status) != 0)
-	{
-		BCryptDestroyHash(hashHandle);
-		return;
-	}
-	if (cbHash != HASHSIZE)
-	{
-		fprintf(stderr,"Hash size not correct!");
-		BCryptDestroyHash(hashHandle);
-		return;
-
-	}
-	char buffer[BUFFERSIZE];
-	size_t cb = fread(buffer, 1, BUFFERSIZE, inputFile);
-	while (cb == BUFFERSIZE)
-	{
-		status = BCryptHashData(hashHandle, buffer, BUFFERSIZE, 0);
-		if (evaluateStatus(status) != 0)
-		{
-			fclose(inputFile);
-			BCryptDestroyHash(hashHandle);
-			return;
-		}
-		cb = fread(buffer, 1, BUFFERSIZE, inputFile);
-	}
-	fclose(inputFile);
-	status = BCryptHashData(hashHandle, buffer, (ULONG)cb, 0);
-	if (evaluateStatus(status) != 0)
-	{
-		BCryptDestroyHash(hashHandle);
-		return;
-	}
 	char hashValue[HASHSIZE];
-	status = BCryptFinishHash(hashHandle, hashValue, HASHSIZE, 0);
-	if (evaluateStatus(status) != 0)
-	{
-		BCryptDestroyHash(hashHandle);
-		return;
-	}
-	status = BCryptDestroyHash(hashHandle);
-	if (evaluateStatus(status) != 0)
-	{
-		return;
-	}
+	computeHash(inputFile, symKey, hashValue);
 	char* signatureFileName = malloc(strlen(fileName) + strlen(".signature") + 1);
+	if (signatureFileName == NULL)
+	{
+		fprintf(stderr, "Out of memory");
+		fclose(inputFile);
+		return;
+	}
 	strcpy(signatureFileName, fileName);
 	strcat(signatureFileName, ".signature");
 	FILE* signatureFile = fopen(signatureFileName,"wb");
 	free(signatureFileName);
 	fwrite(hashValue, 1, HASHSIZE, signatureFile);
 	fclose(signatureFile);
-	status = BCryptCloseAlgorithmProvider(algHandle, 0);
-	if (evaluateStatus(status) != 0)
-	{
-		return;
-	}
 
 }
 
