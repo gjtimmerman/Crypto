@@ -1,0 +1,76 @@
+Dit is een testfile om te zien of encryptie werkt.
+Ik ben benieuwd.
+En nog heel veel inhoud:
+
+BCryptFinishHash function (bcrypt.h)
+Article
+10/13/2021
+2 minutes to read
+The BCryptFinishHash function retrieves the hash or Message Authentication Code (MAC) value for the data accumulated from prior calls to BCryptHashData.
+
+Syntax
+C++
+
+Copy
+NTSTATUS BCryptFinishHash(
+  [in, out] BCRYPT_HASH_HANDLE hHash,
+  [out]     PUCHAR             pbOutput,
+  [in]      ULONG              cbOutput,
+  [in]      ULONG              dwFlags
+);
+Parameters
+[in, out] hHash
+
+The handle of the hash or MAC object to use to compute the hash or MAC. This handle is obtained by calling the BCryptCreateHash function. After this function has been called, the hash handle passed to this function cannot be used again except in a call to BCryptDestroyHash.
+
+[out] pbOutput
+
+A pointer to a buffer that receives the hash or MAC value. The cbOutput parameter contains the size of this buffer.
+
+[in] cbOutput
+
+The size, in bytes, of the pbOutput buffer. This size must exactly match the size of the hash or MAC value.
+
+The size can be obtained by calling the BCryptGetProperty function to get the BCRYPT_HASH_LENGTH property. This will provide the size of the hash or MAC value for the specified algorithm.
+
+[in] dwFlags
+
+A set of flags that modify the behavior of this function. No flags are currently defined, so this parameter should be zero.
+
+Return value
+Returns a status code that indicates the success or failure of the function.
+
+Possible return codes include, but are not limited to, the following.
+
+Return code	Description
+STATUS_SUCCESS
+The function was successful.
+STATUS_INVALID_HANDLE
+The hash handle in the hHash parameter is not valid. After the BCryptFinishHash function has been called for a hash handle, that handle cannot be reused.
+STATUS_INVALID_PARAMETER
+One or more parameters are not valid. This includes the case where cbOutput is not the same size as the hash.
+Remarks
+Depending on what processor modes a provider supports, BCryptFinishHash can be called either from user mode or kernel mode. Kernel mode callers can execute either at PASSIVE_LEVEL IRQL or DISPATCH_LEVEL IRQL. If the current IRQL level is DISPATCH_LEVEL, the handle provided in the hHash parameter must be derived from an algorithm handle returned by a provider that was opened by using the BCRYPT_PROV_DISPATCH flag, and any pointers passed to the BCryptFinishHash function must refer to nonpaged (or locked) memory.
+
+To call this function in kernel mode, use Cng.lib, which is part of the Driver Development Kit (DDK). Windows Server 2008 and Windows Vista:  To call this function in kernel mode, use Ksecdd.lib.
+
+Requirements
+ 	 
+Minimum supported client	Windows Vista [desktop apps | UWP apps]
+Minimum supported server	Windows Server 2008 [desktop apps | UWP apps]
+Target Platform	Windows
+Header	bcrypt.h
+Library	Bcrypt.lib
+DLL	Bcrypt.dll
+See also
+BCryptHashData
+
+Recommended content
+BCryptVerifySignature function (bcrypt.h) - Win32 apps
+Verifies that the specified signature matches the specified hash. (BCryptVerifySignature)
+BCryptDestroyKey function (bcrypt.h) - Win32 apps
+Destroys a key.
+BCryptHashData function (bcrypt.h) - Win32 apps
+Performs a one way hash or Message Authentication Code (MAC) on a data buffer.
+BCryptHash function (bcrypt.h) - Win32 apps
+Performs a single hash computation. This is a convenience function that wraps calls to BCryptCreateHash, BCryptHashData, BCryptFinishHash, and BCryptDestroyHash.

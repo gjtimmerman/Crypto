@@ -179,8 +179,61 @@ void sign(char* fileName, char* keyFileName)
 
 }
 
-void verify(char* filename, char* keyFileName)
+int verify(char* fileName, char* keyFileName)
 {
+	FILE* keyFile = fopen(keyFileName,"rb");
+	if (keyFile == NULL)
+	{
+		fprintf(stderr, "Keyfile: %s does not exist!", keyFileName);
+		return 0;
+	}
+	char symKey[KEYLENGTH];
+	size_t cb = fread(symKey, 1, KEYLENGTH, keyFile);
+	fclose(keyFile);
+	if (cb != KEYLENGTH)
+	{
+		fprintf(stderr, "Key in Keyfile : %s has incorrect size!", keyFileName);
+		return 0;
+	}
+	FILE* inputFile = fopen(fileName, "rb");
+	if (inputFile == NULL)
+	{
+		fprintf(stderr, "Inputfile: %s does not exist!", fileName);
+		return 0;
+	}
+	char hashValue[HASHSIZE];
+	char* signatureFileName = malloc(strlen(fileName) + strlen(".signature") + 1);
+	if (signatureFileName == NULL)
+	{
+		fprintf(stderr, "Out of memory");
+		fclose(inputFile);
+		return 0;
+	}
+
+	strcpy(signatureFileName, fileName);
+	strcat(signatureFileName, ".signature");
+	FILE* signatureFile = fopen(signatureFileName, "rb");
+	if (signatureFile == NULL)
+	{
+		fprintf(stderr, "Signature file: %s does not exist!", signatureFileName);
+		return 0;
+	}
+	char signatureValue[HASHSIZE];
+	cb = fread(signatureValue, 1, HASHSIZE, signatureFile);
+	fclose(signatureFile);
+	if (cb != HASHSIZE)
+	{
+		fprintf(stderr, "Signature in signature file : %s has incorrect size!", signatureFileName);
+		return 0;
+	}
+	free(signatureFileName);
+	computeHash(inputFile, symKey, hashValue);
+	for (int i = 0; i < HASHSIZE; i++)
+	{
+		if (hashValue[i] != signatureValue[i])
+			return 0;
+	}
+	return 1;
 
 }
 
@@ -209,7 +262,10 @@ int main(int argc, char **argv)
 	if (argv[1][1] == 's')
 		sign(argv[2], argv[3]);
 	else
-		verify(argv[2], argv[3]);
+		if (verify(argv[2], argv[3]))
+			printf("Signature is valid!");
+		else
+			printf("Signature is invalid!");
 
 }
 
