@@ -98,10 +98,8 @@ NCRYPT_KEY_HANDLE openKeyFromCertificate(char* subjectName)
 	return keyHandle;
 }
 
-void sign(char* inputFileName, char* subjectName)
+void hashData(char* inputFileName, char *hash)
 {
-	NCRYPT_KEY_HANDLE keyHandle;
-	keyHandle = openKeyFromCertificate(subjectName);
 	BCRYPT_ALG_HANDLE algHandle;
 	NTSTATUS bStatus;
 	bStatus = BCryptOpenAlgorithmProvider(&algHandle, BCRYPT_SHA256_ALGORITHM, NULL, 0);
@@ -112,7 +110,7 @@ void sign(char* inputFileName, char* subjectName)
 	ULONG hashLength;
 	ULONG cbHashLength = sizeof(ULONG);
 	ULONG cbHashLengthReturned;
-	bStatus = BCryptGetProperty(algHandle, BCRYPT_HASH_LENGTH, (PUCHAR) & hashLength, cbHashLength, &cbHashLengthReturned, 0);
+	bStatus = BCryptGetProperty(algHandle, BCRYPT_HASH_LENGTH, (PUCHAR)&hashLength, cbHashLength, &cbHashLengthReturned, 0);
 	if (evaluateBStatus(bStatus) != 0)
 	{
 		return;
@@ -128,7 +126,7 @@ void sign(char* inputFileName, char* subjectName)
 	{
 		return;
 	}
-	bStatus = BCryptCloseAlgorithmProvider(algHandle,0);
+	bStatus = BCryptCloseAlgorithmProvider(algHandle, 0);
 	if (evaluateBStatus(bStatus) != 0)
 	{
 		return;
@@ -155,7 +153,6 @@ void sign(char* inputFileName, char* subjectName)
 	{
 		return;
 	}
-	char hash[HASHSIZE];
 	bStatus = BCryptFinishHash(hashHandle, hash, HASHSIZE, 0);
 	if (evaluateBStatus(bStatus) != 0)
 	{
@@ -166,6 +163,15 @@ void sign(char* inputFileName, char* subjectName)
 	{
 		return;
 	}
+	return;
+}
+
+void sign(char* inputFileName, char* subjectName)
+{
+	NCRYPT_KEY_HANDLE keyHandle;
+	keyHandle = openKeyFromCertificate(subjectName);
+	char hash[HASHSIZE];
+	hashData(inputFileName, hash);
 	char signature[SIGNATURESIZE];
 	ULONG cbResult;
 	BCRYPT_PKCS1_PADDING_INFO paddingInfo;
@@ -181,9 +187,15 @@ void sign(char* inputFileName, char* subjectName)
 		return;
 	}
 	char* signatureFileName = malloc(strlen(inputFileName) + strlen(".signature") + 1);
+	if (signatureFileName == NULL)
+	{
+		fprintf(stderr, "Out of memory!");
+		return;
+	}
 	strcpy(signatureFileName, inputFileName);
 	strcat(signatureFileName, ".signature");
 	FILE* signatureFile = fopen(signatureFileName, "wb");
+	free(signatureFileName);
 	fwrite(signature, 1, SIGNATURESIZE, signatureFile);
 	fclose(signatureFile);
 
@@ -191,6 +203,33 @@ void sign(char* inputFileName, char* subjectName)
 
 int verify(char* inputFileName, char* subjectName)
 {
+	NCRYPT_KEY_HANDLE keyHandle;
+	keyHandle = openKeyFromCertificate(subjectName);
+	char hash[HASHSIZE];
+	hashData(inputFileName, hash);
+	char signature[SIGNATURESIZE];
+	char* signatureFileName = malloc(strlen(inputFileName) + strlen(".signature") + 1);
+	if (signatureFileName == NULL)
+	{
+		fprintf(stderr, "Out of memory!");
+		return 0;
+	}
+	strcpy(signatureFileName, inputFileName);
+	strcat(signatureFileName, ".signature");
+	FILE* signatureFile = fopen(signatureFileName, "rb");
+	free(signatureFileName);
+	fread(signature, 1, SIGNATURESIZE, signatureFile);
+	fclose(signatureFile);
+	SECURITY_STATUS status;
+	BCRYPT_PKCS1_PADDING_INFO paddingInfo;
+	paddingInfo.pszAlgId = BCRYPT_SHA256_ALGORITHM;
+	status = NCryptVerifySignature(keyHandle, &paddingInfo, hash, HASHSIZE, signature, SIGNATURESIZE, BCRYPT_PAD_PKCS1);
+	NCryptFreeObject(keyHandle);
+	if (status == ERROR_SUCCESS)
+		return 1;
+	else if (status == NTE_BAD_SIGNATURE)
+		return 0;
+	evaluateStatus(status);
 	return 0;
 }
 
