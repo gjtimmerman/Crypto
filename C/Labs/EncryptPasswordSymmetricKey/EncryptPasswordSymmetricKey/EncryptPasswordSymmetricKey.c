@@ -48,7 +48,7 @@ void encrypt(const char* fileName, const char* password)
 	status = BCryptOpenAlgorithmProvider(&algProvider, BCRYPT_SHA256_ALGORITHM, 0, BCRYPT_ALG_HANDLE_HMAC_FLAG);
 	if (evaluateStatus(status) != 0)
 		return;
-	status = BCryptDeriveKeyPBKDF2(algProvider, (PUCHAR)password, (ULONG)(strlen(password) + 1), salt, SALTSIZE, ITERATIONCOUNT, pkeyData + sizeof(BCRYPT_KEY_DATA_BLOB_HEADER), KEYLENGTH, 0);
+	status = BCryptDeriveKeyPBKDF2(algProvider, (PUCHAR)password, (ULONG)(strlen(password)), salt, SALTSIZE, ITERATIONCOUNT, pkeyData + sizeof(BCRYPT_KEY_DATA_BLOB_HEADER), KEYLENGTH, 0);
 	if (evaluateStatus(status) != 0)
 		return;
 	status = BCryptCloseAlgorithmProvider(algProvider,0);
@@ -93,7 +93,7 @@ void encrypt(const char* fileName, const char* password)
 	DWORD cbResult;
 	while (cb == BLOCKSIZE)
 	{
-		status = BCryptEncrypt(keyHandle, buffer, BLOCKSIZE, NULL, NULL, 0, encrypted, BLOCKSIZE, &cbResult, 0);
+		status = BCryptEncrypt(keyHandle, buffer, BLOCKSIZE, NULL, iv, BLOCKSIZE, encrypted, BLOCKSIZE, &cbResult, 0);
 		if (evaluateStatus(status) != 0)
 		{
 			fclose(inputFile);
@@ -106,7 +106,7 @@ void encrypt(const char* fileName, const char* password)
 		fwrite(encrypted, 1, BLOCKSIZE, outputFile);
 		cb = fread(buffer, 1, BLOCKSIZE, inputFile);
 	}
-	status = BCryptEncrypt(keyHandle, buffer,(ULONG) cb, NULL, NULL, 0, encrypted, BLOCKSIZE, &cbResult, BCRYPT_BLOCK_PADDING);
+	status = BCryptEncrypt(keyHandle, buffer,(ULONG) cb, NULL, iv, BLOCKSIZE, encrypted, BLOCKSIZE, &cbResult, BCRYPT_BLOCK_PADDING);
 	if (evaluateStatus(status) != 0)
 	{
 		fclose(inputFile);
@@ -184,7 +184,7 @@ void decrypt(const char* fileName, const char* password)
 		cb = fread(pBuffer2, 1, BLOCKSIZE, inputFile);
 		while (cb == BLOCKSIZE)
 		{
-			status = BCryptDecrypt(keyHandle, pBuffer1, BLOCKSIZE, NULL, NULL, 0, decrypted, BLOCKSIZE, &cbResult, 0);
+			status = BCryptDecrypt(keyHandle, pBuffer1, BLOCKSIZE, NULL, iv, BLOCKSIZE, decrypted, BLOCKSIZE, &cbResult, 0);
 			if (evaluateStatus(status) != 0)
 			{
 				fclose(inputFile);
@@ -211,7 +211,7 @@ void decrypt(const char* fileName, const char* password)
 			return;
 		}
 	}
-	status = BCryptDecrypt(keyHandle, pBuffer1, BLOCKSIZE, NULL, NULL, 0, decrypted, BLOCKSIZE, &cbResult, BCRYPT_BLOCK_PADDING);
+	status = BCryptDecrypt(keyHandle, pBuffer1, BLOCKSIZE, NULL, iv, BLOCKSIZE, decrypted, BLOCKSIZE, &cbResult, BCRYPT_BLOCK_PADDING);
 	if (evaluateStatus(status) != 0)
 	{
 		fclose(inputFile);
