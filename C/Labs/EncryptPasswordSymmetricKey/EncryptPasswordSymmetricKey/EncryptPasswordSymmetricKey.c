@@ -48,7 +48,7 @@ void encrypt(const char* fileName, const char* password)
 	status = BCryptOpenAlgorithmProvider(&algProvider, BCRYPT_SHA256_ALGORITHM, 0, BCRYPT_ALG_HANDLE_HMAC_FLAG);
 	if (evaluateStatus(status) != 0)
 		return;
-	status = BCryptDeriveKeyPBKDF2(algProvider, (PUCHAR)password, (ULONG)(strlen(password) + 1), salt, SALTSIZE, ITERATIONCOUNT, pkeyData, KEYLENGTH, 0);
+	status = BCryptDeriveKeyPBKDF2(algProvider, (PUCHAR)password, (ULONG)(strlen(password) + 1), salt, SALTSIZE, ITERATIONCOUNT, pkeyData + sizeof(BCRYPT_KEY_DATA_BLOB_HEADER), KEYLENGTH, 0);
 	if (evaluateStatus(status) != 0)
 		return;
 	status = BCryptCloseAlgorithmProvider(algProvider,0);
@@ -132,7 +132,7 @@ void decrypt(const char* fileName, const char* password)
 	if (evaluateStatus(status) != 0)
 		return;
 	char* pkeyData = malloc(KEYSTRUCTSIZE);
-	status = BCryptDeriveKeyPBKDF2(algProvider, (PUCHAR)password, (ULONG)(strlen(password) + 1), salt, SALTSIZE, ITERATIONCOUNT, pkeyData, KEYLENGTH, 0);
+	status = BCryptDeriveKeyPBKDF2(algProvider, (PUCHAR)password, (ULONG)(strlen(password)), salt, SALTSIZE, ITERATIONCOUNT, pkeyData + sizeof(BCRYPT_KEY_DATA_BLOB_HEADER), KEYLENGTH, 0);
 	if (evaluateStatus(status) != 0)
 		return;
 	status = BCryptCloseAlgorithmProvider(algProvider, 0);
