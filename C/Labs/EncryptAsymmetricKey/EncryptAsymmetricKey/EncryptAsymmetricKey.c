@@ -58,7 +58,7 @@ int evaluateBStatus(NTSTATUS status)
 
 }
 
-void encrypt(char* fileName, char* keyName, char* keyFileName)
+void encrypt(char* fileName, char* keyName)
 {
 	SECURITY_STATUS status;
 	NTSTATUS bStatus;
@@ -97,6 +97,11 @@ void encrypt(char* fileName, char* keyName, char* keyFileName)
 	bStatus = BCryptGenRandom(algHandle, ((PUCHAR)pKeyDataBlobHeader) + sizeof(BCRYPT_KEY_DATA_BLOB_HEADER), KEYLENGTH, 0);
 	if (evaluateBStatus(bStatus) != 0)
 		return;
+	char iv[BLOCKSIZE];
+	ULONG ivSize = BLOCKSIZE;
+	bStatus = BCryptGenRandom(algHandle, iv, ivSize, 0);
+	if (evaluateBStatus(bStatus) != 0)
+		return;
 	bStatus = BCryptCloseAlgorithmProvider(algHandle, 0);
 	if (evaluateBStatus(bStatus) != 0)
 		return;
@@ -115,11 +120,6 @@ void encrypt(char* fileName, char* keyName, char* keyFileName)
 	status = NCryptFreeObject(provHandle);
 	if (evaluateStatus(status) != 0)
 		return;
-	FILE* keyFile = fopen(keyFileName, "wb");
-	if (keyFile == NULL)
-		return;
-	fwrite(encryptedKey, 1, cbEncryptedKeyLen, keyFile);
-	fclose(keyFile);
 
 	BCRYPT_KEY_HANDLE symKeyHandle;
 
@@ -151,13 +151,17 @@ void encrypt(char* fileName, char* keyName, char* keyFileName)
 			return;
 		return;
 	}
+	fwrite(&cbEncryptedKeyLen, sizeof(ULONG), 1, outputFile);
+	fwrite(encryptedKey, 1, cbEncryptedKeyLen, outputFile);
+	fwrite(&ivSize, sizeof(ULONG), 1, outputFile);
+	fwrite(iv, 1, ivSize, outputFile);
 	char buffer[BLOCKSIZE];
 	size_t cb = fread(buffer, 1, BLOCKSIZE, inputFile);
 	char encrypted[BLOCKSIZE];
 	DWORD cbResult;
 	while (cb == BLOCKSIZE)
 	{
-		status = BCryptEncrypt(symKeyHandle, buffer, BLOCKSIZE, NULL, NULL, 0, encrypted, BLOCKSIZE, &cbResult, 0);
+		status = BCryptEncrypt(symKeyHandle, buffer, BLOCKSIZE, NULL, iv, ivSize, encrypted, BLOCKSIZE, &cbResult, 0);
 		if (evaluateBStatus(status) != 0)
 		{
 			fclose(inputFile);
@@ -170,7 +174,7 @@ void encrypt(char* fileName, char* keyName, char* keyFileName)
 		fwrite(encrypted, 1, BLOCKSIZE, outputFile);
 		cb = fread(buffer, 1, BLOCKSIZE, inputFile);
 	}
-	status = BCryptEncrypt(symKeyHandle, buffer, (ULONG)cb, NULL, NULL, 0, encrypted, BLOCKSIZE, &cbResult, BCRYPT_BLOCK_PADDING);
+	status = BCryptEncrypt(symKeyHandle, buffer, (ULONG)cb, NULL, iv, ivSize, encrypted, BLOCKSIZE, &cbResult, BCRYPT_BLOCK_PADDING);
 	if (evaluateBStatus(status) != 0)
 	{
 		fclose(inputFile);
@@ -192,7 +196,7 @@ void encrypt(char* fileName, char* keyName, char* keyFileName)
 
 }
 
-void decrypt(char* fileName, char* keyName, char* keyFileName)
+void decrypt(char* fileName, char* keyName)
 {
 	SECURITY_STATUS status;
 	NCRYPT_PROV_HANDLE provHandle;
@@ -214,13 +218,33 @@ void decrypt(char* fileName, char* keyName, char* keyFileName)
 		return;
 	free(keyNameWide);
 
-	FILE* keyFile = fopen(keyFileName, "rb");
-	if (keyFile == NULL)
+	FILE* inputFile = fopen(fileName, "rb");
+	if (inputFile == NULL)
+	{
+		if (evaluateBStatus(status) != 0)
+			return;
 		return;
+	}
+	ULONG keySize;
+	ULONG ivSize;
 	size_t cbRead;
 	char encryptedKey[RSAMODULUSLEN];
-	cbRead = fread(encryptedKey, 1, RSAMODULUSLEN, keyFile);
-	fclose(keyFile);
+	char iv[BLOCKSIZE];
+	cbRead = fread(&keySize, sizeof(ULONG), 1, inputFile);
+	if (keySize > RSAMODULUSLEN)
+	{
+		fprintf(stderr, "Key size too long!");
+		fclose(inputFile);
+	}
+	cbRead = fread(encryptedKey, 1, keySize, inputFile);
+	cbRead = fread(&ivSize, sizeof(ULONG), 1, inputFile);
+	if (ivSize != BLOCKSIZE)
+	{
+		fprintf(stderr, "IV size not correct!");
+		fclose(inputFile);
+		return;
+	}
+	cbRead = fread(iv, 1, ivSize, inputFile);
 
 	BCRYPT_KEY_DATA_BLOB_HEADER* pKeyDataBlobHeader = malloc(sizeof(BCRYPT_KEY_DATA_BLOB_HEADER) + KEYLENGTH);
 	if (pKeyDataBlobHeader == NULL)
@@ -234,7 +258,7 @@ void decrypt(char* fileName, char* keyName, char* keyFileName)
 	paddingInfo.pbLabel = NULL;
 	paddingInfo.pszAlgId = NCRYPT_SHA256_ALGORITHM;
 	ULONG cbDecryptedKeyLen;
-	status = NCryptDecrypt(keyHandle, encryptedKey, (DWORD)cbRead, &paddingInfo,((PBYTE)pKeyDataBlobHeader) + sizeof(BCRYPT_KEY_DATA_BLOB_HEADER), KEYLENGTH, &cbDecryptedKeyLen, NCRYPT_PAD_OAEP_FLAG);
+	status = NCryptDecrypt(keyHandle, encryptedKey, (DWORD)keySize, &paddingInfo,((PBYTE)pKeyDataBlobHeader) + sizeof(BCRYPT_KEY_DATA_BLOB_HEADER), KEYLENGTH, &cbDecryptedKeyLen, NCRYPT_PAD_OAEP_FLAG);
 	if (evaluateStatus(status) != 0)
 		return;
 	status = NCryptFreeObject(keyHandle);
@@ -255,14 +279,6 @@ void decrypt(char* fileName, char* keyName, char* keyFileName)
 		return;
 	free(pKeyDataBlobHeader);
 
-	FILE* inputFile = fopen(fileName, "rb");
-	if (inputFile == NULL)
-	{
-		status = BCryptDestroyKey(symKeyHandle);
-		if (evaluateBStatus(status) != 0)
-			return;
-		return;
-	}
 	char* outputFileName = malloc(strlen(fileName) + strlen(".decrypted") + 1);
 	strcpy(outputFileName, fileName);
 	strcat(outputFileName, ".decrypted");
@@ -288,7 +304,7 @@ void decrypt(char* fileName, char* keyName, char* keyFileName)
 		cb = fread(pBuffer2, 1, BLOCKSIZE, inputFile);
 		while (cb == BLOCKSIZE)
 		{
-			status = BCryptDecrypt(symKeyHandle, pBuffer1, BLOCKSIZE, NULL, NULL, 0, decrypted, BLOCKSIZE, &cbResult, 0);
+			status = BCryptDecrypt(symKeyHandle, pBuffer1, BLOCKSIZE, NULL, iv, ivSize, decrypted, BLOCKSIZE, &cbResult, 0);
 			if (evaluateBStatus(status) != 0)
 			{
 				fclose(inputFile);
@@ -315,7 +331,7 @@ void decrypt(char* fileName, char* keyName, char* keyFileName)
 			return;
 		}
 	}
-	status = BCryptDecrypt(symKeyHandle, pBuffer1, BLOCKSIZE, NULL, NULL, 0, decrypted, BLOCKSIZE, &cbResult, BCRYPT_BLOCK_PADDING);
+	status = BCryptDecrypt(symKeyHandle, pBuffer1, BLOCKSIZE, NULL, iv, ivSize, decrypted, BLOCKSIZE, &cbResult, BCRYPT_BLOCK_PADDING);
 	if (evaluateBStatus(status) != 0)
 	{
 		status = BCryptDestroyKey(symKeyHandle);
@@ -337,30 +353,30 @@ void decrypt(char* fileName, char* keyName, char* keyFileName)
 
 int main(int argc, char **argv)
 {
-	if (argc < 5)
+	if (argc < 4)
 	{
-		fprintf(stderr, "Too little arguments!\nUsage: %s -e/-d FileName KeyName KeyFileName", argv[0]);
+		fprintf(stderr, "Too little arguments!\nUsage: %s -e/-d FileName KeyName", argv[0]);
 		return 1;
 	}
-	if (argc > 5)
+	if (argc > 4)
 	{
-		fprintf(stderr, "Too many arguments!\nUsage: %s -e/-d FileName KeyName KeyFileName", argv[0]);
+		fprintf(stderr, "Too many arguments!\nUsage: %s -e/-d FileName KeyName", argv[0]);
 		return 1;
 	}
 	if (argv[1][0] != '-')
 	{
-		fprintf(stderr, "Invalid flag: %s\nUsage: %s -e/-d FileName KeyName KeyFileName", argv[1], argv[0]);
+		fprintf(stderr, "Invalid flag: %s\nUsage: %s -e/-d FileName KeyName", argv[1], argv[0]);
 		return 1;
 	}
 	if (argv[1][1] != 'e' && argv[1][1] != 'd')
 	{
-		fprintf(stderr, "Invalid flag: %s\nUsage: %s -e/-d FileName KeyName KeyFileName", argv[1], argv[0]);
+		fprintf(stderr, "Invalid flag: %s\nUsage: %s -e/-d FileName KeyName", argv[1], argv[0]);
 		return 1;
 	}
 	if (argv[1][1] == 'e')
-		encrypt(argv[2], argv[3], argv[4]);
+		encrypt(argv[2], argv[3]);
 	else
-		decrypt(argv[2], argv[3], argv[4]);
+		decrypt(argv[2], argv[3]);
 	return 0;
 }
 
