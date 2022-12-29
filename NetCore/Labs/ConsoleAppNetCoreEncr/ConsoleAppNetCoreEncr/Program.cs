@@ -8,6 +8,7 @@ namespace ConsoleAppNetCoreEncr
 {
     class Program
     {
+
         static void Main(string[] args)
         {
             if (args.Length < 3)
@@ -21,11 +22,11 @@ namespace ConsoleAppNetCoreEncr
                 Aes algorithm = Aes.Create();
                 algorithm.Padding = PaddingMode.PKCS7;
                 RandomNumberGenerator randomNumberGenerator = RandomNumberGenerator.Create();
-                // salt has to be as big as the blocksize. Blocksize is in bits, salt size is in bytes!
-                byte[] salt = new byte[algorithm.BlockSize / 8];
+                byte[] salt = new byte[32];
                 randomNumberGenerator.GetBytes(salt);
-                Rfc2898DeriveBytes keyGenerator = new Rfc2898DeriveBytes(args[2], salt);
+                Rfc2898DeriveBytes keyGenerator = new Rfc2898DeriveBytes(Encoding.ASCII.GetBytes(args[2]), salt, 1000,HashAlgorithmName.SHA256);
                 //key size is in bits!
+                algorithm.KeySize = 128;
                 byte[] key = keyGenerator.GetBytes(algorithm.KeySize / 8);
                 byte[] iv = algorithm.IV;
                 algorithm.Key = key;
@@ -65,9 +66,11 @@ namespace ConsoleAppNetCoreEncr
                         byte[] iv = reader.ReadBytes(ivLength);
 
                         Aes algorithm = Aes.Create();
+                        algorithm.KeySize = 128;
                         algorithm.Padding = PaddingMode.PKCS7;
-                        Rfc2898DeriveBytes keyGenerator = new Rfc2898DeriveBytes(args[2], salt);
-                        byte[] key = keyGenerator.GetBytes(algorithm.KeySize / 8);
+                        byte [] passwordBytes = Encoding.ASCII.GetBytes(args[2]);
+                        Rfc2898DeriveBytes keyGenerator = new Rfc2898DeriveBytes(Encoding.ASCII.GetBytes(args[2]), salt,1000,HashAlgorithmName.SHA256);
+                        byte[] key = keyGenerator.GetBytes(16);
 
                         ICryptoTransform cryptoTransformer = algorithm.CreateDecryptor(key, iv);
 
@@ -77,8 +80,7 @@ namespace ConsoleAppNetCoreEncr
                             using (BinaryReader sReader = new BinaryReader(cStream))
                             {
 
-                                int datalen = (int)fStream.Length - 4 - saltLength - 4 - ivLength;
-                                byte[] data = sReader.ReadBytes(datalen);
+                                byte[] data = sReader.ReadBytes((int)fStream.Length - 4 - saltLength - 4 - ivLength);
 
                                 using (FileStream outStream = File.Open(args[1].Replace("encrypted", "decrypted"), FileMode.OpenOrCreate))
                                 {
