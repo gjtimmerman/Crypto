@@ -11,8 +11,6 @@
 #define SALTSIZE 32
 #define ITERATIONCOUNT 1000
 
-char iv[] = { 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15 };
-char salt[] = { 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31 };
 
 int evaluateStatus(NTSTATUS status)
 {
@@ -43,7 +41,19 @@ void encrypt(const char* fileName, const char* password)
 {
 	NTSTATUS status;
 	BCRYPT_ALG_HANDLE algProvider;
-	char* pkeyData = malloc(KEYSTRUCTSIZE);
+	char salt[SALTSIZE] ;
+	char iv[BLOCKSIZE];
+	char pkeyData[KEYSTRUCTSIZE];
+	status = BCryptOpenAlgorithmProvider(&algProvider, BCRYPT_RNG_ALGORITHM, 0, 0);
+	if (evaluateStatus(status) != 0)
+		return;
+	status = BCryptGenRandom(algProvider, salt, SALTSIZE, 0);
+	if (evaluateStatus(status) != 0)
+		return;
+	status = BCryptGenRandom(algProvider, iv, BLOCKSIZE, 0);
+	if (evaluateStatus(status) != 0)
+		return;
+
 	BCRYPT_KEY_HANDLE keyHandle;
 	status = BCryptOpenAlgorithmProvider(&algProvider, BCRYPT_SHA256_ALGORITHM, 0, BCRYPT_ALG_HANDLE_HMAC_FLAG);
 	if (evaluateStatus(status) != 0)
@@ -63,7 +73,6 @@ void encrypt(const char* fileName, const char* password)
 	pkeyDataHeader->cbKeyData = KEYLENGTH;
 
 	status = BCryptImportKey(algProvider, 0, BCRYPT_KEY_DATA_BLOB, &keyHandle,NULL,0, (PBYTE)pkeyDataHeader, KEYSTRUCTSIZE,0);
-	free(pkeyData);
 	if (evaluateStatus(status) != 0)
 		return;
 	FILE* inputFile = fopen(fileName, "rb");
@@ -87,6 +96,12 @@ void encrypt(const char* fileName, const char* password)
 			return;
 		return;
 	}
+	long saltSize = SALTSIZE;
+	long ivSize = BLOCKSIZE;
+	fwrite(&saltSize, sizeof(long), 1, outputFile);
+	fwrite(salt, 1, SALTSIZE, outputFile);
+	fwrite(&ivSize, sizeof(long), 1, outputFile);
+	fwrite(iv, 1, BLOCKSIZE, outputFile);
 	char buffer[BLOCKSIZE];
 	size_t cb = fread(buffer, 1, BLOCKSIZE, inputFile);
 	char encrypted[BLOCKSIZE];
@@ -131,7 +146,33 @@ void decrypt(const char* fileName, const char* password)
 	status = BCryptOpenAlgorithmProvider(&algProvider, BCRYPT_SHA256_ALGORITHM, 0, BCRYPT_ALG_HANDLE_HMAC_FLAG);
 	if (evaluateStatus(status) != 0)
 		return;
-	char* pkeyData = malloc(KEYSTRUCTSIZE);
+	char salt[SALTSIZE];
+	char iv[BLOCKSIZE];
+	long saltSize;
+	long ivSize;
+	FILE* inputFile = fopen(fileName, "rb");
+	if (inputFile == NULL)
+	{
+		if (evaluateStatus(status) != 0)
+			return;
+		return;
+	}
+	fread(&saltSize, sizeof(long), 1, inputFile);
+	if (saltSize != SALTSIZE)
+	{
+		fprintf(stderr, "Wrong salt size!");
+		fclose(inputFile);
+	}
+	fread(salt, 1, SALTSIZE, inputFile);
+	fread(&ivSize, sizeof(long), 1, inputFile);
+	if (ivSize != BLOCKSIZE)
+	{
+		fprintf(stderr, "Wrong IV size!");
+		fclose(inputFile);
+	}
+	fread(iv, 1, BLOCKSIZE, inputFile);
+
+	char pkeyData[KEYSTRUCTSIZE];
 	status = BCryptDeriveKeyPBKDF2(algProvider, (PUCHAR)password, (ULONG)(strlen(password)), salt, SALTSIZE, ITERATIONCOUNT, pkeyData + sizeof(BCRYPT_KEY_DATA_BLOB_HEADER), KEYLENGTH, 0);
 	if (evaluateStatus(status) != 0)
 		return;
@@ -148,17 +189,8 @@ void decrypt(const char* fileName, const char* password)
 	pkeyDataHeader->dwVersion = BCRYPT_KEY_DATA_BLOB_VERSION1;
 	pkeyDataHeader->cbKeyData = KEYLENGTH;
 	status = BCryptImportKey(algProvider, 0, BCRYPT_KEY_DATA_BLOB, &keyHandle, NULL, 0, (PBYTE)pkeyDataHeader, KEYSTRUCTSIZE, 0);
-	free(pkeyData);
 	if (evaluateStatus(status) != 0)
 		return;
-	FILE* inputFile = fopen(fileName, "rb");
-	if (inputFile == NULL)
-	{
-		status = BCryptDestroyKey(keyHandle);
-		if (evaluateStatus(status) != 0)
-			return;
-		return;
-	}
 	char* outputFileName = malloc(strlen(fileName) + strlen(".decrypted") + 1);
 	strcpy(outputFileName, fileName);
 	strcat(outputFileName, ".decrypted");
@@ -177,6 +209,7 @@ void decrypt(const char* fileName, const char* password)
 	char* pBuffer1 = buffer1;
 	char* pBuffer2 = buffer2;
 	char decrypted[BLOCKSIZE];
+
 	DWORD cbResult;
 	size_t cb = fread(pBuffer1, 1, BLOCKSIZE, inputFile);
 	if (cb == BLOCKSIZE)
