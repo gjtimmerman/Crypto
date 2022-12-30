@@ -2,7 +2,7 @@
   "profiles": {
     "SignWithCertificateNetCore": {
       "commandName": "Project",
-      "commandLineArgs": "-v \"Technisch Ontwerp.txt\" \"Gert Jan Timmerman\""
+      "commandLineArgs": "-v \"MyText.txt\" \"Gert Jan Timmerman\""
     }
   }
 }

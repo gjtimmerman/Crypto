@@ -51,7 +51,7 @@ namespace SignWithCertificateNetCore
                 byte[] hash;
                 using (FileStream fsin = new FileStream(args[1], FileMode.Open))
                 {
-                    hash = myProv.SignData(fsin, HashAlgorithmName.SHA1, RSASignaturePadding.Pkcs1);
+                    hash = myProv.SignData(fsin, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
                 }
                 using (FileStream fshash = new FileStream(args[1] + ".signature", FileMode.Create))
                 {
@@ -81,7 +81,7 @@ namespace SignWithCertificateNetCore
                 }
                 using (FileStream fsin = new FileStream(args[1], FileMode.Open))
                 {
-                    if (myProv.VerifyData(fsin, sign, HashAlgorithmName.SHA1, RSASignaturePadding.Pkcs1))
+                    if (myProv.VerifyData(fsin, sign, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1))
                         Console.WriteLine("Signature is valid");
                     else
                         Console.WriteLine("Signature is not valid");

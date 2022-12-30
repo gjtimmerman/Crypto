@@ -76,6 +76,13 @@ NCRYPT_KEY_HANDLE openKeyFromCertificate(char* subjectName)
 
 	BOOL ret = CertGetCertificateContextProperty(context, CERT_KEY_PROV_INFO_PROP_ID, pCertContext, &cbData);
 	pCertContext = (CRYPT_KEY_PROV_INFO*)malloc(cbData);
+	if (pCertContext == NULL)
+	{
+		fprintf(stderr, "Out of memory");
+		CertCloseStore(store,0);
+		CertFreeCertificateContext(context);
+		return 0;
+	}
 	ret = CertGetCertificateContextProperty(context, CERT_KEY_PROV_INFO_PROP_ID, pCertContext, &cbData);
 	SECURITY_STATUS status;
 	NCRYPT_PROV_HANDLE provHandle;
@@ -83,18 +90,23 @@ NCRYPT_KEY_HANDLE openKeyFromCertificate(char* subjectName)
 	status = NCryptOpenStorageProvider(&provHandle, pCertContext->pwszProvName, 0);
 	if (evaluateStatus(status) != 0)
 	{
+		free(pCertContext);
 		return 0;
 	}
 	status = NCryptOpenKey(provHandle, &keyHandle, pCertContext->pwszContainerName, AT_KEYEXCHANGE, 0);
 	if (evaluateStatus(status) != 0)
 	{
+		free(pCertContext);
+		NCryptFreeObject(provHandle);
 		return 0;
 	}
 	status = NCryptFreeObject(provHandle);
 	if (evaluateStatus(status) != 0)
 	{
+		free(pCertContext);
 		return 0;
 	}
+	free(pCertContext);
 	return keyHandle;
 }
 
@@ -113,6 +125,7 @@ void hashData(char* inputFileName, char *hash)
 	bStatus = BCryptGetProperty(algHandle, BCRYPT_HASH_LENGTH, (PUCHAR)&hashLength, cbHashLength, &cbHashLengthReturned, 0);
 	if (evaluateBStatus(bStatus) != 0)
 	{
+		BCryptCloseAlgorithmProvider(algHandle, 0);
 		return;
 	}
 	if (hashLength != HASHSIZE)
@@ -124,11 +137,13 @@ void hashData(char* inputFileName, char *hash)
 	bStatus = BCryptCreateHash(algHandle, &hashHandle, NULL, 0, NULL, 0, 0);
 	if (evaluateBStatus(bStatus) != 0)
 	{
+		BCryptCloseAlgorithmProvider(algHandle, 0);
 		return;
 	}
 	bStatus = BCryptCloseAlgorithmProvider(algHandle, 0);
 	if (evaluateBStatus(bStatus) != 0)
 	{
+		BCryptDestroyHash(hashHandle);
 		return;
 	}
 	char buffer[BLOCKSIZE];
@@ -136,6 +151,7 @@ void hashData(char* inputFileName, char *hash)
 	if (inputFile == NULL)
 	{
 		printf("Input file: %s does not exist!", inputFileName);
+		BCryptDestroyHash(hashHandle);
 		return;
 	}
 	size_t cb = fread(buffer, 1, BLOCKSIZE, inputFile);
@@ -144,6 +160,8 @@ void hashData(char* inputFileName, char *hash)
 		bStatus = BCryptHashData(hashHandle, buffer, BLOCKSIZE, 0);
 		if (evaluateBStatus(bStatus) != 0)
 		{
+			fclose(inputFile);
+			BCryptDestroyHash(hashHandle);
 			return;
 		}
 		cb = fread(buffer, 1, BLOCKSIZE, inputFile);
@@ -151,18 +169,24 @@ void hashData(char* inputFileName, char *hash)
 	bStatus = BCryptHashData(hashHandle, buffer, (ULONG)cb, 0);
 	if (evaluateBStatus(bStatus) != 0)
 	{
+		fclose(inputFile);
+		BCryptDestroyHash(hashHandle);
 		return;
 	}
 	bStatus = BCryptFinishHash(hashHandle, hash, HASHSIZE, 0);
 	if (evaluateBStatus(bStatus) != 0)
 	{
+		fclose(inputFile);
+		BCryptDestroyHash(hashHandle);
 		return;
 	}
 	bStatus = BCryptDestroyHash(hashHandle);
 	if (evaluateBStatus(bStatus) != 0)
 	{
+		fclose(inputFile);
 		return;
 	}
+	fclose(inputFile);
 	return;
 }
 
@@ -195,6 +219,12 @@ void sign(char* inputFileName, char* subjectName)
 	strcpy(signatureFileName, inputFileName);
 	strcat(signatureFileName, ".signature");
 	FILE* signatureFile = fopen(signatureFileName, "wb");
+	if (signatureFile == NULL)
+	{
+		printf("Cannot create file: %s!", signatureFileName);
+		free(signatureFileName);
+		return;
+	}
 	free(signatureFileName);
 	fwrite(signature, 1, SIGNATURESIZE, signatureFile);
 	fclose(signatureFile);
@@ -211,12 +241,20 @@ int verify(char* inputFileName, char* subjectName)
 	char* signatureFileName = malloc(strlen(inputFileName) + strlen(".signature") + 1);
 	if (signatureFileName == NULL)
 	{
+		NCryptFreeObject(keyHandle);
 		fprintf(stderr, "Out of memory!");
 		return 0;
 	}
 	strcpy(signatureFileName, inputFileName);
 	strcat(signatureFileName, ".signature");
 	FILE* signatureFile = fopen(signatureFileName, "rb");
+	if (signatureFile == NULL)
+	{
+		printf("Signature file: %s does not exist!", signatureFileName);
+		free(signatureFileName);
+		NCryptFreeObject(keyHandle);
+		return 0;
+	}
 	free(signatureFileName);
 	fread(signature, 1, SIGNATURESIZE, signatureFile);
 	fclose(signatureFile);
