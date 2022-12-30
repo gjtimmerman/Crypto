@@ -70,41 +70,83 @@ void encrypt(char* fileName, char* keyName)
 	mbstowcs(keyNameWide, keyName, strlen(keyName)+1);
 	status = NCryptOpenStorageProvider(&provHandle, NULL, 0);
 	if (evaluateStatus(status) != 0)
+	{
+		free(keyNameWide);
 		return;
+	}
 	status = NCryptOpenKey(provHandle,&keyHandle,keyNameWide,AT_KEYEXCHANGE,0);
 	if (status == NTE_BAD_KEYSET)
 	{
-		status = NCryptCreatePersistedKey(provHandle, &keyHandle, NCRYPT_RSA_ALGORITHM,keyNameWide, AT_KEYEXCHANGE, 0);
+		status = NCryptCreatePersistedKey(provHandle, &keyHandle, NCRYPT_RSA_ALGORITHM, keyNameWide, AT_KEYEXCHANGE, 0);
 		if (evaluateStatus(status) != 0)
+		{
+			NCryptFreeObject(provHandle);
+			free(keyNameWide);
 			return;
+		}
 		status = NCryptFinalizeKey(keyHandle, 0);
 		if (evaluateStatus(status) != 0)
+		{
+			NCryptFreeObject(provHandle);
+			NCryptFreeObject(keyHandle);
+			free(keyNameWide);
 			return;
+		}
 	}
 	else if (evaluateStatus(status) != 0)
+	{
+		NCryptFreeObject(provHandle);
+		free(keyNameWide);
 		return;
+	}
 	free(keyNameWide);
 	BCRYPT_ALG_HANDLE algHandle;
 	bStatus = BCryptOpenAlgorithmProvider(&algHandle, BCRYPT_RNG_ALGORITHM, NULL, 0);
 	if (evaluateBStatus(bStatus) != 0)
+	{
+		NCryptFreeObject(provHandle);
+		NCryptFreeObject(keyHandle);
 		return;
+	}
 	BCRYPT_KEY_DATA_BLOB_HEADER *pKeyDataBlobHeader = malloc(sizeof(BCRYPT_KEY_DATA_BLOB_HEADER) + KEYLENGTH);
 	if (pKeyDataBlobHeader == NULL)
+	{
+		status = NCryptFreeObject(keyHandle);
+		status = NCryptFreeObject(provHandle);
+		bStatus = BCryptCloseAlgorithmProvider(algHandle, 0);
 		return;
+	}
 	pKeyDataBlobHeader->dwMagic = BCRYPT_KEY_DATA_BLOB_MAGIC;
 	pKeyDataBlobHeader->dwVersion = BCRYPT_KEY_DATA_BLOB_VERSION1;
 	pKeyDataBlobHeader->cbKeyData = KEYLENGTH;
 	bStatus = BCryptGenRandom(algHandle, ((PUCHAR)pKeyDataBlobHeader) + sizeof(BCRYPT_KEY_DATA_BLOB_HEADER), KEYLENGTH, 0);
 	if (evaluateBStatus(bStatus) != 0)
+	{
+		free(pKeyDataBlobHeader);
+		status = NCryptFreeObject(keyHandle);
+		status = NCryptFreeObject(provHandle);
+		bStatus = BCryptCloseAlgorithmProvider(algHandle, 0);
 		return;
+	}
 	char iv[BLOCKSIZE];
 	ULONG ivSize = BLOCKSIZE;
 	bStatus = BCryptGenRandom(algHandle, iv, ivSize, 0);
 	if (evaluateBStatus(bStatus) != 0)
+	{
+		free(pKeyDataBlobHeader);
+		status = NCryptFreeObject(keyHandle);
+		status = NCryptFreeObject(provHandle);
+		bStatus = BCryptCloseAlgorithmProvider(algHandle, 0);
 		return;
+	}
 	bStatus = BCryptCloseAlgorithmProvider(algHandle, 0);
 	if (evaluateBStatus(bStatus) != 0)
+	{
+		status = NCryptFreeObject(keyHandle);
+		status = NCryptFreeObject(provHandle);
+		free(pKeyDataBlobHeader);
 		return;
+	}
 	char encryptedKey[RSAMODULUSLEN];
 	ULONG cbEncryptedKeyLen;
 	BCRYPT_OAEP_PADDING_INFO paddingInfo;
@@ -113,26 +155,46 @@ void encrypt(char* fileName, char* keyName)
 	paddingInfo.pszAlgId = NCRYPT_SHA256_ALGORITHM;
 	status = NCryptEncrypt(keyHandle, ((PUCHAR)pKeyDataBlobHeader) + sizeof(BCRYPT_KEY_DATA_BLOB_HEADER), KEYLENGTH, &paddingInfo, encryptedKey, RSAMODULUSLEN, &cbEncryptedKeyLen, NCRYPT_PAD_OAEP_FLAG);
 	if (evaluateStatus(status) != 0)
+	{
+		status = NCryptFreeObject(keyHandle);
+		status = NCryptFreeObject(provHandle);
+		free(pKeyDataBlobHeader);
 		return;
+	}
 	status = NCryptFreeObject(keyHandle);
 	if (evaluateStatus(status) != 0)
+	{
+		status = NCryptFreeObject(provHandle);
+		free(pKeyDataBlobHeader);
 		return;
+	}
 	status = NCryptFreeObject(provHandle);
 	if (evaluateStatus(status) != 0)
+	{
+		free(pKeyDataBlobHeader);
 		return;
+	}
 
 	BCRYPT_KEY_HANDLE symKeyHandle;
 
 	bStatus = BCryptOpenAlgorithmProvider(&algHandle, BCRYPT_AES_ALGORITHM, NULL, 0);
 	if (evaluateBStatus(bStatus) != 0)
+	{
+		free(pKeyDataBlobHeader);
 		return;
+	}
 	bStatus = BCryptImportKey(algHandle, NULL, BCRYPT_KEY_DATA_BLOB, &symKeyHandle, NULL, 0, (PUCHAR)pKeyDataBlobHeader, sizeof(BCRYPT_KEY_DATA_BLOB_HEADER) + KEYLENGTH, 0);
 	if (evaluateBStatus(bStatus) != 0)
+	{
+		BCryptCloseAlgorithmProvider(algHandle, 0);
+		free(pKeyDataBlobHeader);
 		return;
+	}
 	free(pKeyDataBlobHeader);
 	FILE* inputFile = fopen(fileName, "rb");
 	if (inputFile == NULL)
 	{
+		BCryptCloseAlgorithmProvider(algHandle, 0);
 		status = BCryptDestroyKey(symKeyHandle);
 		if (evaluateBStatus(status) != 0)
 			return;
@@ -146,6 +208,7 @@ void encrypt(char* fileName, char* keyName)
 	if (outputFile == NULL)
 	{
 		fclose(inputFile);
+		BCryptCloseAlgorithmProvider(algHandle, 0);
 		status = BCryptDestroyKey(symKeyHandle);
 		if (evaluateBStatus(status) != 0)
 			return;
@@ -166,6 +229,7 @@ void encrypt(char* fileName, char* keyName)
 		{
 			fclose(inputFile);
 			fclose(outputFile);
+			BCryptCloseAlgorithmProvider(algHandle, 0);
 			status = BCryptDestroyKey(symKeyHandle);
 			if (evaluateBStatus(status) != 0)
 				return;
@@ -179,6 +243,7 @@ void encrypt(char* fileName, char* keyName)
 	{
 		fclose(inputFile);
 		fclose(outputFile);
+		BCryptCloseAlgorithmProvider(algHandle, 0);
 		status = BCryptDestroyKey(symKeyHandle);
 		if (evaluateBStatus(status) != 0)
 			return;
@@ -189,7 +254,10 @@ void encrypt(char* fileName, char* keyName)
 	fclose(outputFile);
 	status = BCryptDestroyKey(symKeyHandle);
 	if (evaluateBStatus(status) != 0)
+	{
+		BCryptCloseAlgorithmProvider(algHandle, 0);
 		return;
+	}
 	status = BCryptCloseAlgorithmProvider(algHandle,0);
 	if (evaluateBStatus(status) != 0)
 		return;
@@ -208,21 +276,30 @@ void decrypt(char* fileName, char* keyName)
 	mbstowcs(keyNameWide, keyName, strlen(keyName) + 1);
 	status = NCryptOpenStorageProvider(&provHandle, NULL, 0);
 	if (evaluateStatus(status) != 0)
+	{
+		free(keyNameWide);
 		return;
+	}
 	status = NCryptOpenKey(provHandle, &keyHandle, keyNameWide, AT_KEYEXCHANGE, 0);
+	free(keyNameWide);
 	if (status == NTE_BAD_KEYSET)
 	{
 		fprintf(stderr, "Key does not exist!");
+		NCryptFreeObject(provHandle);
+		return;
 	}
 	else if (evaluateStatus(status) != 0)
+	{
+		fprintf(stderr, "Key not available!");
+		NCryptFreeObject(provHandle);
 		return;
-	free(keyNameWide);
+	}
 
 	FILE* inputFile = fopen(fileName, "rb");
 	if (inputFile == NULL)
 	{
-		if (evaluateBStatus(status) != 0)
-			return;
+		NCryptFreeObject(provHandle);
+		NCryptFreeObject(keyHandle);
 		return;
 	}
 	ULONG keySize;
@@ -234,6 +311,8 @@ void decrypt(char* fileName, char* keyName)
 	if (keySize > RSAMODULUSLEN)
 	{
 		fprintf(stderr, "Key size too long!");
+		NCryptFreeObject(provHandle);
+		NCryptFreeObject(keyHandle);
 		fclose(inputFile);
 	}
 	cbRead = fread(encryptedKey, 1, keySize, inputFile);
@@ -241,6 +320,8 @@ void decrypt(char* fileName, char* keyName)
 	if (ivSize != BLOCKSIZE)
 	{
 		fprintf(stderr, "IV size not correct!");
+		NCryptFreeObject(provHandle);
+		NCryptFreeObject(keyHandle);
 		fclose(inputFile);
 		return;
 	}
@@ -248,7 +329,13 @@ void decrypt(char* fileName, char* keyName)
 
 	BCRYPT_KEY_DATA_BLOB_HEADER* pKeyDataBlobHeader = malloc(sizeof(BCRYPT_KEY_DATA_BLOB_HEADER) + KEYLENGTH);
 	if (pKeyDataBlobHeader == NULL)
+	{
+		fprintf(stderr, "Out of memory!");
+		NCryptFreeObject(provHandle);
+		NCryptFreeObject(keyHandle);
+		fclose(inputFile);
 		return;
+	}
 	pKeyDataBlobHeader->dwMagic = BCRYPT_KEY_DATA_BLOB_MAGIC;
 	pKeyDataBlobHeader->dwVersion = BCRYPT_KEY_DATA_BLOB_VERSION1;
 	pKeyDataBlobHeader->cbKeyData = KEYLENGTH;
@@ -260,26 +347,58 @@ void decrypt(char* fileName, char* keyName)
 	ULONG cbDecryptedKeyLen;
 	status = NCryptDecrypt(keyHandle, encryptedKey, (DWORD)keySize, &paddingInfo,((PBYTE)pKeyDataBlobHeader) + sizeof(BCRYPT_KEY_DATA_BLOB_HEADER), KEYLENGTH, &cbDecryptedKeyLen, NCRYPT_PAD_OAEP_FLAG);
 	if (evaluateStatus(status) != 0)
+	{
+		fprintf(stderr, "Decryption error!");
+		NCryptFreeObject(provHandle);
+		NCryptFreeObject(keyHandle);
+		free(pKeyDataBlobHeader);
+		fclose(inputFile);
 		return;
+	}
 	status = NCryptFreeObject(keyHandle);
 	if (evaluateStatus(status) != 0)
+	{
+		NCryptFreeObject(provHandle);
+		free(pKeyDataBlobHeader);
+		fclose(inputFile);
 		return;
+	}
 	status = NCryptFreeObject(provHandle);
 	if (evaluateStatus(status) != 0)
+	{
+		fclose(inputFile);
+		free(pKeyDataBlobHeader);
 		return;
+	}
 	NTSTATUS bStatus;
 	BCRYPT_ALG_HANDLE algHandle;
 	BCRYPT_KEY_HANDLE symKeyHandle;
 
 	bStatus = BCryptOpenAlgorithmProvider(&algHandle, BCRYPT_AES_ALGORITHM, NULL, 0);
 	if (evaluateBStatus(bStatus) != 0)
+	{
+		free(pKeyDataBlobHeader);
+		fclose(inputFile);
 		return;
+	}
 	bStatus = BCryptImportKey(algHandle, NULL, BCRYPT_KEY_DATA_BLOB, &symKeyHandle, NULL, 0, (PUCHAR)pKeyDataBlobHeader, sizeof(BCRYPT_KEY_DATA_BLOB_HEADER) + KEYLENGTH, 0);
 	if (evaluateBStatus(bStatus) != 0)
+	{
+		BCryptCloseAlgorithmProvider(algHandle, 0);
+		fclose(inputFile);
+		free(pKeyDataBlobHeader);
 		return;
+	}
 	free(pKeyDataBlobHeader);
 
 	char* outputFileName = malloc(strlen(fileName) + strlen(".decrypted") + 1);
+	if (outputFileName == NULL)
+	{
+		BCryptCloseAlgorithmProvider(algHandle, 0);
+		BCryptDestroyKey(symKeyHandle);
+		fclose(inputFile);
+		return;
+	}
 	strcpy(outputFileName, fileName);
 	strcat(outputFileName, ".decrypted");
 	FILE* outputFile = fopen(outputFileName, "wb");
@@ -287,9 +406,8 @@ void decrypt(char* fileName, char* keyName)
 	if (outputFile == NULL)
 	{
 		fclose(inputFile);
-		status = BCryptDestroyKey(symKeyHandle);
-		if (evaluateBStatus(status) != 0)
-			return;
+		BCryptCloseAlgorithmProvider(algHandle, 0);
+		BCryptDestroyKey(symKeyHandle);
 		return;
 	}
 	char buffer1[BLOCKSIZE];
@@ -309,9 +427,8 @@ void decrypt(char* fileName, char* keyName)
 			{
 				fclose(inputFile);
 				fclose(outputFile);
-				status = BCryptDestroyKey(symKeyHandle);
-				if (evaluateBStatus(status) != 0)
-					return;
+				BCryptDestroyKey(symKeyHandle);
+				BCryptCloseAlgorithmProvider(algHandle, 0);
 				return;
 			}
 			fwrite(decrypted, 1, BLOCKSIZE, outputFile);
@@ -325,9 +442,8 @@ void decrypt(char* fileName, char* keyName)
 			fprintf(stderr, "Invalid padding");
 			fclose(inputFile);
 			fclose(outputFile);
-			status = BCryptDestroyKey(symKeyHandle);
-			if (evaluateBStatus(status) != 0)
-				return;
+			BCryptDestroyKey(symKeyHandle);
+			BCryptCloseAlgorithmProvider(algHandle, 0);
 			return;
 		}
 	}
@@ -337,17 +453,15 @@ void decrypt(char* fileName, char* keyName)
 		status = BCryptDestroyKey(symKeyHandle);
 		fclose(inputFile);
 		fclose(outputFile);
+		BCryptDestroyKey(symKeyHandle);
+		BCryptCloseAlgorithmProvider(algHandle, 0);
 		return;
 	}
 	fwrite(decrypted, 1, cbResult, outputFile);
 	fclose(inputFile);
 	fclose(outputFile);
-	status = BCryptDestroyKey(symKeyHandle);
-	if (evaluateBStatus(status) != 0)
-		return;
-	status = BCryptCloseAlgorithmProvider(algHandle, 0);
-	if (evaluateBStatus(status) != 0)
-		return;
+	BCryptDestroyKey(symKeyHandle);
+	BCryptCloseAlgorithmProvider(algHandle, 0);
 
 }
 
