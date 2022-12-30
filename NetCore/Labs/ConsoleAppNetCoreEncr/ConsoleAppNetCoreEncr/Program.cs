@@ -68,8 +68,8 @@ namespace ConsoleAppNetCoreEncr
                         Aes algorithm = Aes.Create();
                         algorithm.KeySize = 128;
                         algorithm.Padding = PaddingMode.PKCS7;
-                        byte [] passwordBytes = Encoding.ASCII.GetBytes(args[2]);
-                        Rfc2898DeriveBytes keyGenerator = new Rfc2898DeriveBytes(Encoding.ASCII.GetBytes(args[2]), salt,1000,HashAlgorithmName.SHA256);
+                        byte[] passwordBytes = Encoding.ASCII.GetBytes(args[2]);
+                        Rfc2898DeriveBytes keyGenerator = new Rfc2898DeriveBytes(Encoding.ASCII.GetBytes(args[2]), salt, 1000, HashAlgorithmName.SHA256);
                         byte[] key = keyGenerator.GetBytes(16);
 
                         ICryptoTransform cryptoTransformer = algorithm.CreateDecryptor(key, iv);

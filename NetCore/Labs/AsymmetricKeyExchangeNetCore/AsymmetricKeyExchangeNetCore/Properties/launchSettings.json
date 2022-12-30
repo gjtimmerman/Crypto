@@ -2,7 +2,7 @@
   "profiles": {
     "AsymmetricKeyExchangeNetCore": {
       "commandName": "Project",
-      "commandLineArgs": "-d \"Technisch Ontwerp.txt.encrypted\" MyCoolKey"
+      "commandLineArgs": "-d MyText.txt.encrypted MyCoolKey"
     }
   }
 }
