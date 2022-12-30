@@ -5,7 +5,7 @@
 #include <windows.h>
 #include <bcrypt.h>
 
-#define KEYLENGTH 16
+#define KEYLENGTH 64
 #define BUFFERSIZE 1024
 #define HASHSIZE 32
 
@@ -46,6 +46,7 @@ void computeHash(FILE *inputFile, char symKey[], char hashValue[])
 	status = BCryptCreateHash(algHandle, &hashHandle, NULL, 0, symKey, KEYLENGTH, 0);
 	if (evaluateStatus(status) != 0)
 	{
+		BCryptCloseAlgorithmProvider(algHandle, 0);
 		return;
 	}
 	ULONG cbHash;
@@ -54,11 +55,13 @@ void computeHash(FILE *inputFile, char symKey[], char hashValue[])
 	if (evaluateStatus(status) != 0)
 	{
 		BCryptDestroyHash(hashHandle);
+		BCryptCloseAlgorithmProvider(algHandle, 0);
 		return;
 	}
 	if (cbHash != HASHSIZE)
 	{
 		fprintf(stderr, "Hash size not correct!");
+		BCryptCloseAlgorithmProvider(algHandle, 0);
 		BCryptDestroyHash(hashHandle);
 		return;
 
@@ -70,28 +73,30 @@ void computeHash(FILE *inputFile, char symKey[], char hashValue[])
 		status = BCryptHashData(hashHandle, buffer, BUFFERSIZE, 0);
 		if (evaluateStatus(status) != 0)
 		{
-			fclose(inputFile);
 			BCryptDestroyHash(hashHandle);
+			BCryptCloseAlgorithmProvider(algHandle, 0);
 			return;
 		}
 		cb = fread(buffer, 1, BUFFERSIZE, inputFile);
 	}
-	fclose(inputFile);
 	status = BCryptHashData(hashHandle, buffer, (ULONG)cb, 0);
 	if (evaluateStatus(status) != 0)
 	{
 		BCryptDestroyHash(hashHandle);
+		BCryptCloseAlgorithmProvider(algHandle, 0);
 		return;
 	}
 	status = BCryptFinishHash(hashHandle, hashValue, HASHSIZE, 0);
 	if (evaluateStatus(status) != 0)
 	{
 		BCryptDestroyHash(hashHandle);
+		BCryptCloseAlgorithmProvider(algHandle, 0);
 		return;
 	}
 	status = BCryptDestroyHash(hashHandle);
 	if (evaluateStatus(status) != 0)
 	{
+		BCryptCloseAlgorithmProvider(algHandle, 0);
 		return;
 	}
 	status = BCryptCloseAlgorithmProvider(algHandle, 0);
@@ -163,16 +168,22 @@ void sign(char* fileName, char* keyFileName)
 	}
 	char hashValue[HASHSIZE];
 	computeHash(inputFile, symKey, hashValue);
+	fclose(inputFile);
 	char* signatureFileName = malloc(strlen(fileName) + strlen(".signature") + 1);
 	if (signatureFileName == NULL)
 	{
 		fprintf(stderr, "Out of memory");
-		fclose(inputFile);
 		return;
 	}
 	strcpy(signatureFileName, fileName);
 	strcat(signatureFileName, ".signature");
 	FILE* signatureFile = fopen(signatureFileName,"wb");
+	if (signatureFile == NULL)
+	{
+		fprintf(stderr, "Cannot open file: %s", signatureFileName);
+		free(signatureFileName);
+		return;
+	}
 	free(signatureFileName);
 	fwrite(hashValue, 1, HASHSIZE, signatureFile);
 	fclose(signatureFile);
@@ -200,7 +211,7 @@ int verify(char* fileName, char* keyFileName)
 	{
 		fprintf(stderr, "Inputfile: %s does not exist!", fileName);
 		return 0;
-	}
+	} 
 	char hashValue[HASHSIZE];
 	char* signatureFileName = malloc(strlen(fileName) + strlen(".signature") + 1);
 	if (signatureFileName == NULL)
@@ -216,6 +227,7 @@ int verify(char* fileName, char* keyFileName)
 	if (signatureFile == NULL)
 	{
 		fprintf(stderr, "Signature file: %s does not exist!", signatureFileName);
+		free(signatureFileName);
 		return 0;
 	}
 	char signatureValue[HASHSIZE];
@@ -228,6 +240,7 @@ int verify(char* fileName, char* keyFileName)
 	}
 	free(signatureFileName);
 	computeHash(inputFile, symKey, hashValue);
+	fclose(inputFile);
 	for (int i = 0; i < HASHSIZE; i++)
 	{
 		if (hashValue[i] != signatureValue[i])
